@@ -11,7 +11,6 @@ class Server extends OpenApiObject
         public ?string $description = null,
         /** @var Collection<string, ServerVariable> */
         public Collection $variables = new Collection,
-    )
-    {
+    ) {
     }
 }

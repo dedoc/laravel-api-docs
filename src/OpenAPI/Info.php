@@ -12,8 +12,7 @@ class Info extends OpenApiObject
         public ?string $termsOfService = null,
         // public ?Contact $contact = null,
         // public ?License $license = null,
-    )
-    {
+    ) {
 
     }
 }

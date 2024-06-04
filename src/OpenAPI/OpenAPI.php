@@ -21,7 +21,6 @@ class OpenAPI extends OpenApiObject
         /** @var Collection<int, Tag> */
         public Collection $tags = new Collection,
         // public ?ExternalDocumentation $externalDocs = null,
-    )
-    {
+    ) {
     }
 }
