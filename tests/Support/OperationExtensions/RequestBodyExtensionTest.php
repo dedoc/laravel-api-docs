@@ -299,6 +299,10 @@ class RequestBodyExtensionTest__allows_specifying_query_position_and_default_for
     }
 }
 
+it('falls back to static analysis when cannot evaluate rules', function () {
+
+});
+
 it('ignores param in rules with annotation', function () {
     $openApiDocument = generateForRoute(function () {
         return RouteFacade::get('api/test/{id}', [RequestBodyExtensionTest__ignores_rules_param_with_annotation::class, 'index']);

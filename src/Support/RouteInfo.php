@@ -4,6 +4,7 @@ namespace Dedoc\Scramble\Support;
 
 use Dedoc\Scramble\Infer;
 use Dedoc\Scramble\Infer\Reflector\MethodReflector;
+use Dedoc\Scramble\Infer\Scope\ScopeTypeResolver;
 use Dedoc\Scramble\Infer\Services\FileParser;
 use Dedoc\Scramble\PhpDoc\PhpDocTypeHelper;
 use Dedoc\Scramble\Support\IndexBuilders\Bag;
@@ -235,5 +236,24 @@ class RouteInfo
         }
 
         return $this->methodType;
+    }
+
+    /**
+     * Returns a scope type resolver which allows to get the type of any
+     * node from the method body.
+     *
+     * @internal - not sure if this is here to stick
+     */
+    public function getMethodScopeTypeResolver(): ?ScopeTypeResolver
+    {
+        if (! $this->isClassBased() || ! $this->getMethodType()) {
+            return null;
+        }
+
+        $methodScope = $this->infer
+            ->analyzeClass($this->className())
+            ->getMethodScope($this->methodName());
+
+        return new ScopeTypeResolver($methodScope);
     }
 }

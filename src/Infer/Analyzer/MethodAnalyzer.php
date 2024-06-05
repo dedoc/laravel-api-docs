@@ -28,7 +28,7 @@ class MethodAnalyzer
 
     public function analyze(FunctionLikeDefinition $methodDefinition, array $indexBuilders = [])
     {
-        $this->traverseClassMethod(
+        $scope = $this->traverseClassMethod(
             [$this->getClassReflector()->getMethod($methodDefinition->type->name)->getAstNode()],
             $methodDefinition,
             $indexBuilders,
@@ -40,7 +40,10 @@ class MethodAnalyzer
 
         $methodDefinition->isFullyAnalyzed = true;
 
-        return $methodDefinition;
+        return new MethodAnalysisResult(
+            scope: $scope,
+            definition: $methodDefinition,
+        );
     }
 
     private function getClassReflector(): ClassReflector
@@ -57,7 +60,7 @@ class MethodAnalyzer
         $traverser->addVisitor(new TypeInferer(
             $this->index,
             $nameResolver,
-            new Scope($this->index, new NodeTypesResolver(), new ScopeContext($this->classDefinition), $nameResolver),
+            $scope = new Scope($this->index, new NodeTypesResolver(), new ScopeContext($this->classDefinition), $nameResolver),
             Context::getInstance()->extensionsBroker->extensions,
             [new IndexBuildingHandler($indexBuilders)],
         ));
@@ -70,6 +73,6 @@ class MethodAnalyzer
 
         $traverser->traverse(Arr::wrap($node));
 
-        return $node;
+        return $scope;
     }
 }

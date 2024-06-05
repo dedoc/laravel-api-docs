@@ -54,6 +54,16 @@ class ModelInfo
     {
         $class = $this->qualifyModel($this->class);
 
+        $reflectionClass = new ReflectionClass($class);
+        if (! $reflectionClass->isInstantiable()) {
+            return collect([
+                'instance' => null,
+                'class' => $class,
+                'attributes' => collect(),
+                'relations' => collect(),
+            ]);
+        }
+
         /** @var Model $model */
         $model = app()->make($class);
 

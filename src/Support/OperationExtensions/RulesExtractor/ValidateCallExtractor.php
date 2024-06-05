@@ -2,6 +2,7 @@
 
 namespace Dedoc\Scramble\Support\OperationExtensions\RulesExtractor;
 
+use Dedoc\Scramble\Support\RouteInfo;
 use Illuminate\Http\Request;
 use PhpParser\Node;
 use PhpParser\NodeFinder;
@@ -74,10 +75,17 @@ class ValidateCallExtractor
         );
     }
 
-    public function extract()
+    public function extract(RouteInfo $routeInfo)
     {
         $methodNode = $this->handle;
         $validationRules = $this->node()->node ?? null;
+
+        if ($validationRules) {
+            $type = $routeInfo->getMethodScopeTypeResolver()->getType($validationRules);
+            //                        dump([
+            //                            $routeInfo->className().'@'.$routeInfo->methodName() => $type->toString(),
+            //                        ]);
+        }
 
         if ($validationRules) {
             $printer = new Standard();

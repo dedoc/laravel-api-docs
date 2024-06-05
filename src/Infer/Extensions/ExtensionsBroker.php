@@ -41,6 +41,22 @@ class ExtensionsBroker
         return null;
     }
 
+    public function getFunctionReturnType($event)
+    {
+        $extensions = array_filter($this->extensions, function ($e) use ($event) {
+            return $e instanceof FunctionReturnTypeExtension
+                && $e->shouldHandle($event->getName());
+        });
+
+        foreach ($extensions as $extension) {
+            if ($propertyType = $extension->getFunctionReturnType($event)) {
+                return $propertyType;
+            }
+        }
+
+        return null;
+    }
+
     public function getStaticMethodReturnType($event)
     {
         $extensions = array_filter($this->extensions, function ($e) use ($event) {

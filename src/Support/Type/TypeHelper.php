@@ -147,6 +147,24 @@ class TypeHelper
             return new LiteralBooleanType($value);
         }
 
+        if (is_array($value)) {
+            return new KeyedArrayType(
+                collect($value)
+                    ->map(function ($value, $key) {
+                        return new ArrayItemType_(
+                            is_string($key) ? $key : null,
+                            static::createTypeFromValue($value),
+                        );
+                    })
+                    ->values()
+                    ->all()
+            );
+        }
+
+        if (is_null($value)) {
+            return new NullType;
+        }
+
         return null; // @todo: object
     }
 
@@ -187,5 +205,16 @@ class TypeHelper
         }
 
         return new UnknownType('Cannot create type from reflection type '.((string) $reflectionType));
+    }
+
+    /**
+     * @param  Type[]  $parts
+     */
+    public static function flattenStringConcatTypes(array $parts): array
+    {
+        return collect($parts)
+            ->flatMap(fn ($t) => $t instanceof ConcatenatedStringType ? $t->parts : [$t])
+            ->values()
+            ->all();
     }
 }

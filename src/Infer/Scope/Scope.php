@@ -15,11 +15,13 @@ use Dedoc\Scramble\Support\Type\ArrayType;
 use Dedoc\Scramble\Support\Type\CallableStringType;
 use Dedoc\Scramble\Support\Type\KeyedArrayType;
 use Dedoc\Scramble\Support\Type\ObjectType;
+use Dedoc\Scramble\Support\Type\Reference\AbstractReferenceType;
 use Dedoc\Scramble\Support\Type\Reference\CallableCallReferenceType;
 use Dedoc\Scramble\Support\Type\Reference\MethodCallReferenceType;
 use Dedoc\Scramble\Support\Type\Reference\NewCallReferenceType;
 use Dedoc\Scramble\Support\Type\Reference\PropertyFetchReferenceType;
 use Dedoc\Scramble\Support\Type\Reference\StaticMethodCallReferenceType;
+use Dedoc\Scramble\Support\Type\Reference\StaticPropertyFetchReferenceType;
 use Dedoc\Scramble\Support\Type\SelfType;
 use Dedoc\Scramble\Support\Type\TemplateType;
 use Dedoc\Scramble\Support\Type\Type;
@@ -54,7 +56,13 @@ class Scope
         }
 
         if ($node instanceof Node\Expr\ConstFetch) {
-            return (new ConstFetchTypeGetter)($node);
+            $type = (new ConstFetchTypeGetter)($node);
+
+            if (! $type instanceof AbstractReferenceType) {
+                return $type;
+            }
+
+            return $this->setType($node, $type);
         }
 
         if ($node instanceof Node\Expr\Ternary) {
@@ -73,7 +81,13 @@ class Scope
         }
 
         if ($node instanceof Node\Expr\ClassConstFetch) {
-            return (new ClassConstFetchTypeGetter)($node, $this);
+            $type = (new ClassConstFetchTypeGetter)($node, $this);
+
+            if (! $type instanceof AbstractReferenceType) {
+                return $type;
+            }
+
+            return $this->setType($node, $type);
         }
 
         if ($node instanceof Node\Expr\BooleanNot) {
@@ -117,11 +131,11 @@ class Scope
 
             $calleeType = $this->getType($node->var);
             if ($calleeType instanceof TemplateType) {
-                // @todo
-                // if ($calleeType->is instanceof ObjectType) {
-                //     $calleeType = $calleeType->is;
-                // }
-                return $this->setType($node, new UnknownType("Cannot infer type of method [{$node->name->name}] call on template type: not supported yet."));
+                if ($calleeType->is instanceof ObjectType) {
+                    $calleeType = $calleeType->is;
+                } else {
+                    return $this->setType($node, new UnknownType("Cannot infer type of method [{$node->name->name}] call on template type: not supported yet."));
+                }
             }
 
             return $this->setType(
@@ -144,6 +158,23 @@ class Scope
             return $this->setType(
                 $node,
                 new StaticMethodCallReferenceType($node->class->toString(), $node->name->name, $this->getArgsTypes($node->args)),
+            );
+        }
+
+        if ($node instanceof Node\Expr\StaticPropertyFetch) {
+            // Only string method names support.
+            if (! $node->name instanceof Node\Identifier) {
+                return $type;
+            }
+
+            // Only string class names support.
+            if (! $node->class instanceof Node\Name) {
+                return $type;
+            }
+
+            return $this->setType(
+                $node,
+                new StaticPropertyFetchReferenceType($node->class->toString(), $node->name->name),
             );
         }
 
@@ -301,11 +332,6 @@ class Scope
         }
 
         return $type;
-    }
-
-    public function getMethodCallType(Type $calledOn, string $methodName, array $arguments = []): Type
-    {
-
     }
 
     public function getPropertyFetchType(Type $calledOn, string $propertyName): Type

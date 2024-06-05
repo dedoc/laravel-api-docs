@@ -3,6 +3,7 @@
 namespace Dedoc\Scramble\Support\IndexBuilders;
 
 use Dedoc\Scramble\Infer\Scope\Scope;
+use Dedoc\Scramble\Infer\Services\ReferenceTypeResolver;
 use Dedoc\Scramble\Support\Generator\MissingExample;
 use Dedoc\Scramble\Support\Generator\Parameter;
 use Dedoc\Scramble\Support\Generator\Schema;
@@ -151,7 +152,13 @@ class RequestParametersBuilder
 
     private function makeEnumParameter(Scope $scope, Node $node)
     {
-        if (! $className = TypeHelper::getArgType($scope, $node->args, ['default', 1])->value ?? null) {
+        if (! $argType = TypeHelper::getArgType($scope, $node->args, ['default', 1])) {
+            return [null, null];
+        }
+
+        $argType = ReferenceTypeResolver::getInstance()->resolve($scope, $argType);
+
+        if (! $className = $argType->value ?? null) {
             return [null, null];
         }
 

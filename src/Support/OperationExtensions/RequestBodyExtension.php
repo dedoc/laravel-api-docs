@@ -33,7 +33,7 @@ class RequestBodyExtension extends OperationExtension
         $routeInfo->getMethodType();
 
         try {
-            $bodyParams = $this->extractParamsFromRequestValidationRules($routeInfo->route, $routeInfo->methodNode());
+            $bodyParams = $this->extractParamsFromRequestValidationRules($routeInfo->route, $routeInfo->methodNode(), $routeInfo);
 
             $bodyParamsNames = array_map(fn ($p) => $p->name, $bodyParams);
 
@@ -112,14 +112,14 @@ class RequestBodyExtension extends OperationExtension
         });
     }
 
-    protected function extractParamsFromRequestValidationRules(Route $route, ?ClassMethod $methodNode)
+    protected function extractParamsFromRequestValidationRules(Route $route, ?ClassMethod $methodNode, $routeInfo)
     {
-        [$rules, $nodesResults] = $this->extractRouteRequestValidationRules($route, $methodNode);
+        [$rules, $nodesResults] = $this->extractRouteRequestValidationRules($route, $methodNode, $routeInfo);
 
         return (new RulesToParameters($rules, $nodesResults, $this->openApiTransformer))->handle();
     }
 
-    protected function extractRouteRequestValidationRules(Route $route, $methodNode)
+    protected function extractRouteRequestValidationRules(Route $route, $methodNode, $routeInfo)
     {
         $rules = [];
         $nodesResults = [];
@@ -133,7 +133,7 @@ class RequestBodyExtension extends OperationExtension
         }
 
         if (($validateCallExtractor = new ValidateCallExtractor($methodNode))->shouldHandle()) {
-            if ($validateCallRules = $validateCallExtractor->extract()) {
+            if ($validateCallRules = $validateCallExtractor->extract($routeInfo)) {
                 $rules = array_merge($rules, $validateCallRules);
                 $nodesResults[] = $validateCallExtractor->node();
             }

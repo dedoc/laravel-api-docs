@@ -2,10 +2,10 @@
 
 namespace Dedoc\Scramble\Support\Type;
 
+use Dedoc\Scramble\Infer\Context;
 use Dedoc\Scramble\Infer\Definition\FunctionLikeDefinition;
 use Dedoc\Scramble\Infer\Extensions\Event\MethodCallEvent;
 use Dedoc\Scramble\Infer\Extensions\Event\PropertyFetchEvent;
-use Dedoc\Scramble\Infer\Extensions\ExtensionsBroker;
 use Dedoc\Scramble\Infer\Scope\GlobalScope;
 use Dedoc\Scramble\Infer\Scope\Scope;
 
@@ -28,7 +28,7 @@ class ObjectType extends AbstractType
 
     public function getPropertyType(string $propertyName, Scope $scope = new GlobalScope): Type
     {
-        if ($propertyType = app(ExtensionsBroker::class)->getPropertyType(new PropertyFetchEvent(
+        if ($propertyType = Context::getInstance()->extensionsBroker->getPropertyType(new PropertyFetchEvent(
             instance: $this,
             name: $propertyName,
             scope: $scope,
@@ -54,7 +54,7 @@ class ObjectType extends AbstractType
 
     public function getMethodReturnType(string $methodName, array $arguments = [], Scope $scope = new GlobalScope): ?Type
     {
-        if ($returnType = app(ExtensionsBroker::class)->getMethodReturnType(new MethodCallEvent(
+        if ($returnType = Context::getInstance()->extensionsBroker->getMethodReturnType(new MethodCallEvent(
             instance: $this,
             name: $methodName,
             scope: $scope,

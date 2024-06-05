@@ -20,6 +20,8 @@ use PhpParser\NameContext;
 
 class ClassDefinition
 {
+    private array $methodsScopes = [];
+
     public function __construct(
         // FQ name
         public string $name,
@@ -57,10 +59,13 @@ class ClassDefinition
         $methodDefinition = $this->methods[$name];
 
         if (! $methodDefinition->isFullyAnalyzed()) {
-            $this->methods[$name] = (new MethodAnalyzer(
+            $result = (new MethodAnalyzer(
                 $scope->index,
                 $this
             ))->analyze($methodDefinition, $indexBuilders);
+
+            $this->methodsScopes[$name] = $result->scope;
+            $this->methods[$name] = $result->definition;
         }
 
         $methodScope = new Scope(
@@ -115,5 +120,12 @@ class ClassDefinition
         }
 
         return $type;
+    }
+
+    public function getMethodScope(string $methodName)
+    {
+        $this->getMethodDefinition($methodName);
+
+        return $this->methodsScopes[$methodName] ?? null;
     }
 }

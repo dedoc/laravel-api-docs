@@ -9,6 +9,7 @@ use Dedoc\Scramble\Infer\Handler\ArrayHandler;
 use Dedoc\Scramble\Infer\Handler\ArrayItemHandler;
 use Dedoc\Scramble\Infer\Handler\AssignHandler;
 use Dedoc\Scramble\Infer\Handler\ClassHandler;
+use Dedoc\Scramble\Infer\Handler\ConcatHandler;
 use Dedoc\Scramble\Infer\Handler\CreatesScope;
 use Dedoc\Scramble\Infer\Handler\ExceptionInferringExtensions;
 use Dedoc\Scramble\Infer\Handler\ExpressionTypeInferringExtensions;
@@ -42,6 +43,7 @@ class TypeInferer extends NodeVisitorAbstract
         $this->handlers = [
             new FunctionLikeHandler(),
             new AssignHandler(),
+            new ConcatHandler(),
             new ClassHandler(),
             new PropertyHandler(),
             new ArrayHandler(),
