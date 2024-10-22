@@ -6,6 +6,9 @@ class FunctionType extends AbstractType implements FunctionLikeType
 {
     public string $name;
 
+    /**
+     * @var array<string, Type> Key is an argument name, and value is its type.
+     */
     public array $arguments;
 
     public Type $returnType;

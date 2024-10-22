@@ -25,6 +25,7 @@ uses(TestCase::class)->in(__DIR__);
 function analyzeFile(
     string $code,
     $extensions = [],
+    Index $index = null,
 ): AnalysisResult {
     if ($code[0] === '/') {
         $code = file_get_contents($code);
@@ -36,7 +37,7 @@ function analyzeFile(
         );
     }
 
-    $index = app(Index::class); //new Index;
+    $index = $index ?: app(Index::class); //new Index;
 
     $traverser = new NodeTraverser;
     $traverser->addVisitor($nameResolver = new NameResolver);
