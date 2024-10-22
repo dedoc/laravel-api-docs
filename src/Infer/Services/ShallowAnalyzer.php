@@ -10,7 +10,6 @@ use Dedoc\Scramble\Infer\Visitors\ShallowClassAnalyzingVisitor;
 use PhpParser\ErrorHandler\Throwing;
 use PhpParser\NameContext;
 use PhpParser\Node;
-use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor;
 use PhpParser\NodeVisitorAbstract;
@@ -20,13 +19,11 @@ class ShallowAnalyzer
     private array $symbolsTable = [];
 
     /**
-     * @param array<string, string> $locations Key is a filename, and value is a code
+     * @param  array<string, string>  $locations  Key is a filename, and value is a code
      */
     public function __construct(
         private array $locations,
-    )
-    {
-    }
+    ) {}
 
     public function buildIndex(Index $index = new Index): Index
     {
@@ -43,11 +40,11 @@ class ShallowAnalyzer
                 if (! $keyedSymbols->has($a->extends)) {
                     return -1;
                 }
+
                 return $b->name === $a->extends
                     ? -1
                     : 0;
             });
-
 
         // 3. analyze in order
         $sortedSymbols->each(fn (Symbol $s) => $this->analyzeSymbol($s, $index));
@@ -81,8 +78,10 @@ class ShallowAnalyzer
     {
         $nodes = app(FileParser::class)->parseContent($code)->getStatements();
         $traverser = new NodeTraverser;
-        $traverser->addVisitor($symbolsExtractor = new class($source) extends NodeVisitorAbstract {
+        $traverser->addVisitor($symbolsExtractor = new class($source) extends NodeVisitorAbstract
+        {
             public function __construct(private string $source, public array $symbols = []) {}
+
             public function enterNode(Node $node)
             {
                 if ($node instanceof Node\Stmt\Class_) {
@@ -90,8 +89,9 @@ class ShallowAnalyzer
                         type: 'class',
                         name: $node->name->toString(),
                         location: $this->source,
-                        extends:  $node->extends?->toString(),
+                        extends: $node->extends?->toString(),
                     );
+
                     return NodeVisitor::DONT_TRAVERSE_CHILDREN;
                 }
 
@@ -101,6 +101,7 @@ class ShallowAnalyzer
                         name: $node->name->toString(),
                         location: $this->source,
                     );
+
                     return NodeVisitor::DONT_TRAVERSE_CHILDREN;
                 }
 

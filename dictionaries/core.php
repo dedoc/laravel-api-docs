@@ -14,12 +14,12 @@ class Exception implements Throwable
     private function __clone(): void {}
 
     /**
-     * @param TMessage $message
-     * @param TCode $code
-     * @param TPrevious $previous
+     * @param  TMessage  $message
+     * @param  TCode  $code
+     * @param  TPrevious  $previous
      */
     public function __construct(
-        protected string $message = "",
+        protected string $message = '',
         protected int $code = 0,
         protected ?Throwable $previous = null
     ) {}
@@ -34,7 +34,6 @@ class Exception implements Throwable
 
     public function getLine(): int {}
 
-    /** @return array */
     public function getTrace(): array {}
 
     /** @return TPrevious */

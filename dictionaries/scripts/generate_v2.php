@@ -1,20 +1,15 @@
 <?php
 
-use Dedoc\Scramble\Infer\Context;
-use Dedoc\Scramble\Infer\Handler\IndexBuildingHandler;
-use Dedoc\Scramble\Infer\Reflector\ClassReflector;
 use Dedoc\Scramble\Infer\Scope\Index;
 use Dedoc\Scramble\Infer\Scope\NodeTypesResolver;
 use Dedoc\Scramble\Infer\Scope\Scope;
 use Dedoc\Scramble\Infer\Scope\ScopeContext;
 use Dedoc\Scramble\Infer\Services\FileNameResolver;
 use Dedoc\Scramble\Infer\Services\FileParser;
-use Dedoc\Scramble\Infer\TypeInferer;
 use Dedoc\Scramble\Infer\Visitors\ShallowClassAnalyzingVisitor;
 use PhpParser\ErrorHandler\Throwing;
 use PhpParser\NameContext;
 use PhpParser\NodeTraverser;
-use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 
 include 'vendor/autoload.php';
@@ -36,7 +31,8 @@ foreach ($files as $file) {
     analyzeFile($content);
 }
 
-function analyzeFile(string $code) {
+function analyzeFile(string $code)
+{
     $index = app(Index::class);
 
     $nodes = app(FileParser::class)->parseContent($code)->getStatements();
