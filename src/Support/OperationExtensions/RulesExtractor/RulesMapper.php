@@ -177,7 +177,7 @@ class RulesMapper
             $type = $this->string($type);
         }
 
-        return $type->contentMediaType('application/octet-stream');
+        return $type->contentMediaType('application/octet-stream')->format('binary');
     }
 
     public function url(Type $type)

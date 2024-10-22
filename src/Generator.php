@@ -2,6 +2,8 @@
 
 namespace Dedoc\Scramble;
 
+use Dedoc\Scramble\Attributes\ExcludeAllRoutesFromDocs;
+use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Dedoc\Scramble\Exceptions\RouteAware;
 use Dedoc\Scramble\Infer\Services\FileParser;
 use Dedoc\Scramble\OpenApiVisitor\SchemaEnforceVisitor;
@@ -146,6 +148,31 @@ class Generator
             })
             ->filter($config->routes())
             ->filter(fn (Route $r) => $r->getAction('controller'))
+            ->filter(function (Route $route) {
+                if (! is_string($route->getAction('uses'))) {
+                    return true;
+                }
+
+                try {
+                    $classReflection = new \ReflectionClass(explode('@', $route->getAction('uses'))[0]);
+
+                    if (count($classReflection->getAttributes(ExcludeAllRoutesFromDocs::class))) {
+                        return false;
+                    }
+                } catch (Throwable) {
+                }
+
+                try {
+                    $reflection = new \ReflectionMethod(...explode('@', $route->getAction('uses')));
+
+                    if (count($reflection->getAttributes(ExcludeRouteFromDocs::class))) {
+                        return false;
+                    }
+                } catch (Throwable) {
+                }
+
+                return true;
+            })
             ->values();
     }
 
