@@ -59,9 +59,10 @@ class ShallowAnalyzer
         $nodes = app(FileParser::class)->parseContent($code)->getStatements();
 
         $traverser = new NodeTraverser;
+        $traverser->addVisitor($nameResolverVisitor = new NodeVisitor\NameResolver());
         $traverser->addVisitor(new ShallowClassAnalyzingVisitor(
             index: $index,
-            scope: new Scope($index, new NodeTypesResolver, new ScopeContext, new FileNameResolver(tap(new NameContext(new Throwing), fn (NameContext $nc) => $nc->startNamespace()))),
+            scope: new Scope($index, new NodeTypesResolver, new ScopeContext, new FileNameResolver($nameResolverVisitor->getNameContext())),
             symbol: $symbol,
         ));
         $traverser->traverse($nodes);

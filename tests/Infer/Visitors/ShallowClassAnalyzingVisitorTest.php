@@ -350,4 +350,45 @@ EOL;
     expect($fooDefinition->getMethodDefinition('bar')->type->toString())->toBe('(): self');
 });
 
-//
+// Namespaces
+test('annotates namespaces', function () {
+    $code = <<<'EOL'
+<?php
+
+#[NS('Illuminate\Http')]
+class Foo {}
+EOL;
+
+    $index = analyzeCodeShallowly_Test($code);
+
+    expect($index->getClassDefinition('Illuminate\Http\Foo'))->not->toBeNull();
+});
+
+test('namespace keyword', function () {
+    $code = <<<'EOL'
+<?php
+namespace Illuminate\Http;
+class Foo {}
+EOL;
+
+    $index = analyzeCodeShallowly_Test($code);
+
+    expect($index->getClassDefinition('Illuminate\Http\Foo'))->not->toBeNull();
+});
+
+test('namespaced use', function () {
+    $code = <<<'EOL'
+<?php
+use Illuminate\Http\Request;
+
+class Foo
+{
+    public Request $request;
+}
+EOL;
+
+    $index = analyzeCodeShallowly_Test($code);
+
+    expect($index->getClassDefinition('Foo')->getPropertyDefinition('request')->type->toString())
+        ->toBe('Illuminate\Http\Request');
+});

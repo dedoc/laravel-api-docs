@@ -236,12 +236,28 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
             : new ClassDefinition('null');
 
         return new ClassDefinition(
-            name: $node->name->toString(),
+            name: $this->getNamespacedClassName($node),
             templateTypes: array_merge($parentDefinition->templateTypes, $templates),
             properties: $parentDefinition->properties,
             methods: $parentDefinition->methods,
             parentFqn: $node->extends?->toString(),
         );
+    }
+
+    private function getNamespacedClassName(Node\Stmt\Class_ $node)
+    {
+        $name = $node->namespacedName
+            ? $node->namespacedName->toString()
+            : $node->name->toString();
+
+        /** @var Node\Attribute|null $nsAttribute */
+        $nsAttribute = collect($node->attrGroups)
+            ->flatMap->attrs
+            ->first(fn (Node\Attribute $a) => $a->name->toString() === 'NS' && is_string($a->args[0]->value->value ?? null));
+
+        $ns = $nsAttribute ? $nsAttribute->args[0]->value->value : '';
+
+        return $ns ? $ns.'\\'.Str::afterLast($name, '\\') : $name;
     }
 
     /**
