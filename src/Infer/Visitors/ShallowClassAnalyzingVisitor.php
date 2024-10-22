@@ -40,14 +40,12 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
         private Scope $scope,
         private Symbol $symbol,
         private ScopeContext $context = new ScopeContext,
-    )
-    {
-    }
+    ) {}
 
     public function enterNode(Node $node)
     {
         if ($node instanceof Node\Stmt\Function_) {
-            if (!$this->symbol->filterNodes($node)) {
+            if (! $this->symbol->filterNodes($node)) {
                 return NodeVisitor::DONT_TRAVERSE_CHILDREN;
             }
         }
@@ -179,7 +177,6 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
             ...$classDefinition->templateTypes,
             ...($methodDefinition->type->templates ?? []),
         ])->keyBy(fn (TemplateType $templateType) => $templateType->name);
-
 
         return (new TypeWalker)->replace(
             $subject,

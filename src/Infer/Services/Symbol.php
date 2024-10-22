@@ -13,9 +13,7 @@ class Symbol
         public readonly ?string $extends = null,
         public readonly array $implements = [],
         public readonly array $uses = [], // traits (?)
-    )
-    {
-    }
+    ) {}
 
     public function filterNodes(Node $node)
     {

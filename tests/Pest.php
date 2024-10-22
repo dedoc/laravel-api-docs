@@ -25,7 +25,7 @@ uses(TestCase::class)->in(__DIR__);
 function analyzeFile(
     string $code,
     $extensions = [],
-    Index $index = null,
+    ?Index $index = null,
 ): AnalysisResult {
     if ($code[0] === '/') {
         $code = file_get_contents($code);

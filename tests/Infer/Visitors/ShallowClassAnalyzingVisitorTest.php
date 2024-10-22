@@ -8,33 +8,34 @@ use Dedoc\Scramble\Support\Type\TemplateType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
-function analyzeCodeShallowly_Test(string $code): Index {
+function analyzeCodeShallowly_Test(string $code): Index
+{
     return (new ShallowAnalyzer(['temp' => $code]))
         ->buildIndex(new Index);
 }
 
 test('fuck around and find out', function () {
     $index = analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php'));
-//    $index = analyzeCodeShallowly_Test(
-//        file_get_contents((new \ReflectionClass(Model::class))->getFileName())
-//    );
-//    $index = analyzeCodeShallowly_Test(
-//        file_get_contents((new \ReflectionClass(Collection::class))->getFileName())
-//    );
+    //    $index = analyzeCodeShallowly_Test(
+    //        file_get_contents((new \ReflectionClass(Model::class))->getFileName())
+    //    );
+    //    $index = analyzeCodeShallowly_Test(
+    //        file_get_contents((new \ReflectionClass(Collection::class))->getFileName())
+    //    );
 
-//    $type = analyzeFile('<?php', [], $index)->getExpressionType('(new Exception("wow", 404))->getThis()');
-//
-//    dd($type->toString());
-//
-//    return;
+    //    $type = analyzeFile('<?php', [], $index)->getExpressionType('(new Exception("wow", 404))->getThis()');
+    //
+    //    dd($type->toString());
+    //
+    //    return;
 
     foreach ($index->classesDefinitions as $classDefinition) {
         $str = "class $classDefinition->name";
         if ($classDefinition->templateTypes) {
-            $str .= " <".join(', ', array_map(
+            $str .= ' <'.implode(', ', array_map(
                 fn (TemplateType $t) => $t->toDefinitionString(),
                 $classDefinition->templateTypes,
-            )).">";
+            )).'>';
         }
         if ($classDefinition->parentFqn) {
             $str .= " extends $classDefinition->parentFqn";
@@ -43,7 +44,7 @@ test('fuck around and find out', function () {
         foreach ($classDefinition->properties as $name => $property) {
             $propertyString = $property->type->toString().' $'.$name;
             if ($property->defaultType) {
-                $propertyString .= " = ".$property->defaultType->toString();
+                $propertyString .= ' = '.$property->defaultType->toString();
             }
             $propertyString .= ";\n";
 
@@ -51,7 +52,7 @@ test('fuck around and find out', function () {
         }
         $str .= "\n";
         foreach ($classDefinition->methods as $name => $methodDefinition) {
-            $methodString = $name;// .' '.$methodDefinition->type->toString();
+            $methodString = $name; // .' '.$methodDefinition->type->toString();
             if ($methodDefinition->type->templates) {
                 $templatesString = collect($methodDefinition->type->templates)->map->toString()->join(', ');
                 $methodString .= ' <'.$templatesString.'>';
@@ -60,7 +61,7 @@ test('fuck around and find out', function () {
                 ->map(fn ($type, $name) => $type->toString().' $'.$name.(($default = $methodDefinition->argumentsDefaults[$name] ?? null) ? ' = '.$default->toString() : ''))
                 ->join(', ');
             $methodString .= ' ('.$argsString.')';
-            $methodString .= ': '. $methodDefinition->type->returnType->toString();
+            $methodString .= ': '.$methodDefinition->type->returnType->toString();
             $methodString .= ";\n";
 
             $str .= "  $methodString";
@@ -70,11 +71,11 @@ test('fuck around and find out', function () {
 
     dump($str);
 
-    $a=1;
+    $a = 1;
 });
 
 test('adds simplest class', function () {
-    $code = <<<EOL
+    $code = <<<'EOL'
 <?php
 
 class Foo {}
