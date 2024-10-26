@@ -38,11 +38,11 @@ class ShallowAnalyzer
                     return -1;
                 }
                 if (! $keyedSymbols->has($a->extends)) {
-                    return -1;
+                    return 1;
                 }
 
                 return $b->name === $a->extends
-                    ? -1
+                    ? 1
                     : 0;
             });
 

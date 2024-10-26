@@ -364,7 +364,7 @@ class ReferenceTypeResolver
             }
 
             return (new ClassAnalyzer($this->index))->analyze($className);
-        } catch (\ReflectionException) {
+        } catch (\ReflectionException $e) {
         }
 
         return null;

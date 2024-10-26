@@ -1,5 +1,7 @@
 <?php
 
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+
 /**
  * @template TMessage of string = ''
  * @template TCode of int = 0
@@ -47,3 +49,51 @@ class Exception implements Throwable
 }
 
 class RuntimeException extends Exception {}
+
+/**
+ * @template TStatusCode of int
+ * @template TMessage of string = ''
+ * @template TCode of int = 0
+ * @template TPrevious of Throwable|null = null
+ * @template THeaders of array<string, mixed>
+ *
+ * @extends Exception<TMessage, TCode, TPrevious>
+ */
+#[NS('Symfony\Component\HttpKernel\Exception')]
+class HttpException extends \RuntimeException implements HttpExceptionInterface
+{
+    /**
+     * @param TStatusCode $statusCode
+     * @param TMessage $message
+     * @param TPrevious $previous
+     * @param THeaders $headers
+     * @param TCode $code
+     */
+    public function __construct(
+        private int $statusCode,
+        string $message = '',
+        ?\Throwable $previous = null,
+        private array $headers = [],
+        int $code = 0,
+    ) {
+    }
+
+    public static function fromStatusCode(int $statusCode, string $message = '', ?\Throwable $previous = null, array $headers = [], int $code = 0): self
+    {}
+
+    /** @return TStatusCode */
+    public function getStatusCode(): int
+    {}
+
+    /** @return THeaders */
+    public function getHeaders(): array
+    {}
+
+    /**
+     * @template TNewHeaders of array<string, mixed>
+     * @phpstan-this-out static<_, _, _, _, TNewHeaders>
+     * @param TNewHeaders $headers
+     */
+    public function setHeaders(array $headers): void
+    {}
+}

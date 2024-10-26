@@ -28,6 +28,7 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\TemplateTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
+use function DeepCopy\deep_copy;
 
 /**
  * Shallow class analyzing does not do any assumptions about templates and does not try to infer them. It simply
@@ -232,7 +233,7 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
         );
 
         $parentDefinition = ($extends = $node->extends?->toString())
-            ? $this->index->getClassDefinition($extends)
+            ? $this->applySpecifiedTemplates($this->index->getClassDefinition($extends), $comment)
             : new ClassDefinition('null');
 
         return new ClassDefinition(
@@ -290,5 +291,42 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
             type: $propertyType,
             defaultType: $default ? $this->scope->getType($default) : null,
         );
+    }
+
+    private function applySpecifiedTemplates(ClassDefinition $parentDefinition, PhpDocNode $comment)
+    {
+        $parentDefinition = deep_copy($parentDefinition);
+
+        $appliedTemplateTypes = $comment->getExtendsTagValues()[0]->type->genericTypes ?? [];
+        if (! $appliedTemplateTypes) {
+            return $parentDefinition;
+        }
+
+        if (count($parentDefinition->templateTypes) !== count($appliedTemplateTypes)) {
+            throw new \Exception(count($parentDefinition->templateTypes)." template arguments is expected for extending ".$parentDefinition->name." class, and exactly ".count($appliedTemplateTypes)." passed");
+        }
+
+        $parentDefinitionTemplates = $parentDefinition->templateTypes;
+        foreach ($parentDefinitionTemplates as $templateIndex => $template) {
+            foreach ($parentDefinition->properties as $propertyDefinition) {
+                $propertyDefinition->type = (new TypeWalker)->replace(
+                    $propertyDefinition->type,
+                    fn (Type $t) => $t === $template
+                        ? PhpDocTypeHelper::toType($appliedTemplateTypes[$templateIndex])
+                        : null,
+                );
+            }
+            foreach ($parentDefinition->methods as $methodDefinition) {
+                $methodDefinition->type = (new TypeWalker)->replace(
+                    $methodDefinition->type,
+                    fn (Type $t) => $t === $template
+                        ? PhpDocTypeHelper::toType($appliedTemplateTypes[$templateIndex])
+                        : null,
+                );
+            }
+        }
+        $parentDefinition->templateTypes = [];
+
+        return $parentDefinition;
     }
 }

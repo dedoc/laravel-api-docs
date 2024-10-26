@@ -2,11 +2,15 @@
 
 namespace Dedoc\Scramble\Tests\Infer\Visitors;
 
+use Dedoc\Scramble\Infer;
+use Dedoc\Scramble\Infer\Definition\ClassDefinition;
 use Dedoc\Scramble\Infer\Scope\Index;
 use Dedoc\Scramble\Infer\Services\ShallowAnalyzer;
 use Dedoc\Scramble\Support\Type\TemplateType;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Benchmark;
 use Illuminate\Support\Collection;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 function analyzeCodeShallowly_Test(string $code): Index
 {
@@ -14,65 +18,103 @@ function analyzeCodeShallowly_Test(string $code): Index
         ->buildIndex(new Index);
 }
 
+function dumpDefinition(ClassDefinition $classDefinition) {
+    $str = "class $classDefinition->name";
+    if ($classDefinition->templateTypes) {
+        $str .= ' <'.implode(', ', array_map(
+                fn (TemplateType $t) => $t->toDefinitionString(),
+                $classDefinition->templateTypes,
+            )).'>';
+    }
+    if ($classDefinition->parentFqn) {
+        $str .= " extends $classDefinition->parentFqn";
+    }
+    $str .= " {\n";
+    foreach ($classDefinition->properties as $name => $property) {
+        $propertyString = $property->type->toString().' $'.$name;
+        if ($property->defaultType) {
+            $propertyString .= ' = '.$property->defaultType->toString();
+        }
+        $propertyString .= ";\n";
+
+        $str .= "  $propertyString";
+    }
+    $str .= "\n";
+    foreach ($classDefinition->methods as $name => $methodDefinition) {
+        $methodString = $name; // .' '.$methodDefinition->type->toString();
+        if ($methodDefinition->type->templates) {
+            $templatesString = collect($methodDefinition->type->templates)->map->toString()->join(', ');
+            $methodString .= ' <'.$templatesString.'>';
+        }
+        $argsString = collect($methodDefinition->type->arguments)
+            ->map(fn ($type, $name) => $type->toString().' $'.$name.(($default = $methodDefinition->argumentsDefaults[$name] ?? null) ? ' = '.$default->toString() : ''))
+            ->join(', ');
+        $methodString .= ' ('.$argsString.')';
+        $methodString .= ': '.$methodDefinition->type->returnType->toString();
+        $methodString .= ";\n";
+
+        $str .= "  $methodString";
+    }
+    $str .= '}';
+    dump($str);
+}
+
+
+
 test('fuck around and find out', function () {
-    $index = analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php'));
+//    Benchmark::dd([
+//        fn () => analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php')),
+//        function () {
+//            foreach ((require __DIR__.'/../../../dictionaries/classMap.php') ?: [] as $className => $serializedClassDefinition) {
+//                unserialize($serializedClassDefinition);
+//            }
+//        }
+//    ]);
+    Benchmark::dd(
+        fn () => analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php')),
+        10,
+    );
+//    Benchmark::measure(
+//        fn () => $index = analyzeCodeShallowly_Test(
+//                 file_get_contents((new \ReflectionClass(Model::class))->getFileName())
+//               ),
+//        10,
+//    );
+    $index = analyzeCodeShallowly_Test(
+        file_get_contents((new \ReflectionClass(Model::class))->getFileName())
+    );
+
+
+//    $index = analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php'));
+//
+//    (new Infer($index))->analyzeClass(Hehe_Not_Exception::class);
+
     //    $index = analyzeCodeShallowly_Test(
     //        file_get_contents((new \ReflectionClass(Model::class))->getFileName())
     //    );
     //    $index = analyzeCodeShallowly_Test(
     //        file_get_contents((new \ReflectionClass(Collection::class))->getFileName())
     //    );
+//    $type = analyzeFile('<?php', [], $index)->getExpressionType('new Dedoc\Scramble\Tests\Infer\Visitors\Hehe_Not_Exception("wow")');
+    //
 
-    //    $type = analyzeFile('<?php', [], $index)->getExpressionType('(new Exception("wow", 404))->getThis()');
-    //
-    //    dd($type->toString());
-    //
-    //    return;
+//    dd($type->toString());
+//    //
+//        return;
 
     foreach ($index->classesDefinitions as $classDefinition) {
-        $str = "class $classDefinition->name";
-        if ($classDefinition->templateTypes) {
-            $str .= ' <'.implode(', ', array_map(
-                fn (TemplateType $t) => $t->toDefinitionString(),
-                $classDefinition->templateTypes,
-            )).'>';
-        }
-        if ($classDefinition->parentFqn) {
-            $str .= " extends $classDefinition->parentFqn";
-        }
-        $str .= " {\n";
-        foreach ($classDefinition->properties as $name => $property) {
-            $propertyString = $property->type->toString().' $'.$name;
-            if ($property->defaultType) {
-                $propertyString .= ' = '.$property->defaultType->toString();
-            }
-            $propertyString .= ";\n";
-
-            $str .= "  $propertyString";
-        }
-        $str .= "\n";
-        foreach ($classDefinition->methods as $name => $methodDefinition) {
-            $methodString = $name; // .' '.$methodDefinition->type->toString();
-            if ($methodDefinition->type->templates) {
-                $templatesString = collect($methodDefinition->type->templates)->map->toString()->join(', ');
-                $methodString .= ' <'.$templatesString.'>';
-            }
-            $argsString = collect($methodDefinition->type->arguments)
-                ->map(fn ($type, $name) => $type->toString().' $'.$name.(($default = $methodDefinition->argumentsDefaults[$name] ?? null) ? ' = '.$default->toString() : ''))
-                ->join(', ');
-            $methodString .= ' ('.$argsString.')';
-            $methodString .= ': '.$methodDefinition->type->returnType->toString();
-            $methodString .= ";\n";
-
-            $str .= "  $methodString";
-        }
-        $str .= '}';
+        dumpDefinition($classDefinition);
     }
-
-    dump($str);
 
     $a = 1;
 });
+
+class Hehe_Not_Exception extends HttpException {
+    public function __construct(string $message = '', ?\Throwable $previous = null, array $headers = [], int $code = 0)
+    {
+        parent::__construct(419, $message, $previous, $headers, $code);
+    }
+}
 
 test('adds simplest class', function () {
     $code = <<<'EOL'
@@ -391,4 +433,41 @@ EOL;
 
     expect($index->getClassDefinition('Foo')->getPropertyDefinition('request')->type->toString())
         ->toBe('Illuminate\Http\Request');
+});
+
+// Extending classes
+
+test('extending a class with templates replaces templates instantly', function () {
+    $code = <<<'EOL'
+<?php
+
+/** @extends Foo<int, string> */
+class Bar extends Foo
+{
+}
+
+/**
+ * @template T
+ * @template Q
+ */
+class Foo
+{
+    /** @var T */
+    public $request;
+
+    /**
+     * @return Q
+     */
+    public function wow(){}
+}
+EOL;
+
+    $index = analyzeCodeShallowly_Test($code);
+
+    $barDefinition = $index->getClassDefinition('Bar');
+
+    expect($barDefinition->getPropertyDefinition('request')->type->toString())
+        ->toBe('int')
+        ->and($barDefinition->getMethodDefinition('wow')->type->toString())
+        ->toBe('(): string');
 });
