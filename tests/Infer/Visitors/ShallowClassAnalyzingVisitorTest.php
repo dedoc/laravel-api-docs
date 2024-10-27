@@ -10,6 +10,7 @@ use Dedoc\Scramble\Support\Type\TemplateType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Benchmark;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 function analyzeCodeShallowly_Test(string $code): Index
@@ -21,10 +22,11 @@ function analyzeCodeShallowly_Test(string $code): Index
 function dumpDefinition(ClassDefinition $classDefinition) {
     $str = "class $classDefinition->name";
     if ($classDefinition->templateTypes) {
-        $str .= ' <'.implode(', ', array_map(
-                fn (TemplateType $t) => $t->toDefinitionString(),
-                $classDefinition->templateTypes,
-            )).'>';
+        $classTemplatesString = collect($classDefinition->templateTypes)
+            ->map(fn (TemplateType $t) => ' * @template ' . Str::replace(' is ', ' of ', $t->toDefinitionString()))
+            ->join("\n");
+
+        $str = "/**\n".$classTemplatesString."\n */\n".$str;
     }
     if ($classDefinition->parentFqn) {
         $str .= " extends $classDefinition->parentFqn";
@@ -391,12 +393,13 @@ EOL;
 });
 
 // Namespaces
-test('annotates namespaces', function () {
+test('braced namespaces', function () {
     $code = <<<'EOL'
 <?php
 
-#[NS('Illuminate\Http')]
-class Foo {}
+namespace Illuminate\Http {
+    class Foo {}
+}
 EOL;
 
     $index = analyzeCodeShallowly_Test($code);

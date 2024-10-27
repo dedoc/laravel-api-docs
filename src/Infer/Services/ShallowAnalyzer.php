@@ -7,6 +7,7 @@ use Dedoc\Scramble\Infer\Scope\NodeTypesResolver;
 use Dedoc\Scramble\Infer\Scope\Scope;
 use Dedoc\Scramble\Infer\Scope\ScopeContext;
 use Dedoc\Scramble\Infer\Visitors\ShallowClassAnalyzingVisitor;
+use Illuminate\Support\Str;
 use PhpParser\ErrorHandler\Throwing;
 use PhpParser\NameContext;
 use PhpParser\Node;
@@ -79,6 +80,7 @@ class ShallowAnalyzer
     {
         $nodes = app(FileParser::class)->parseContent($code)->getStatements();
         $traverser = new NodeTraverser;
+        $traverser->addVisitor($nameResolverVisitor = new NodeVisitor\NameResolver());
         $traverser->addVisitor($symbolsExtractor = new class($source) extends NodeVisitorAbstract
         {
             public function __construct(private string $source, public array $symbols = []) {}
@@ -88,7 +90,7 @@ class ShallowAnalyzer
                 if ($node instanceof Node\Stmt\Class_) {
                     $this->symbols[] = new Symbol(
                         type: 'class',
-                        name: $node->name->toString(),
+                        name: $this->getNamespacedClassName($node),
                         location: $this->source,
                         extends: $node->extends?->toString(),
                     );
@@ -107,6 +109,13 @@ class ShallowAnalyzer
                 }
 
                 return null;
+            }
+
+            private function getNamespacedClassName(Node\Stmt\Class_ $node)
+            {
+                return $node->namespacedName
+                    ? $node->namespacedName->toString()
+                    : $node->name->toString();
             }
         });
         $traverser->traverse($nodes);

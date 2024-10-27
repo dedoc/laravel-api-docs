@@ -2,14 +2,13 @@
 
 use Dedoc\Scramble\Infer\Scope\Index;
 use Dedoc\Scramble\Infer\Services\FileParser;
+use Dedoc\Scramble\Infer\Services\ShallowAnalyzer;
 use PhpParser\ParserFactory;
 
 include 'vendor/autoload.php';
 
-$classes = [
-    Exception::class,
-    RuntimeException::class,
-    \Symfony\Component\HttpKernel\Exception\HttpException::class,
+$files = [
+    __DIR__.'/../core.php',
 ];
 
 app()->singleton(FileParser::class, function () {
@@ -19,25 +18,20 @@ app()->singleton(FileParser::class, function () {
 });
 app()->singleton(Index::class);
 
-$classesDefinitions = [];
-foreach ($classes as $className) {
-    $classesDefinitions[$className] = generateClassDefinitionInitialization($className);
+foreach ($files as $file) {
+    $content = file_get_contents($file);
+
+    (new ShallowAnalyzer(['temp' => $content]))
+        ->buildIndex(app(Index::class));
 }
 
-function generateClassDefinitionInitialization(string $name)
-{
-    $classAnalyzer = app(\Dedoc\Scramble\Infer\Analyzer\ClassAnalyzer::class);
-
-    $classDefinition = $classAnalyzer->analyze($name);
-    foreach ($classDefinition->methods as $methodName => $method) {
-        $classDefinition->getMethodDefinition($methodName);
-    }
-
-    return serialize($classAnalyzer->analyze($name));
+$classesDefinitions = [];
+foreach (app(Index::class)->classesDefinitions as $definition) {
+    $classesDefinitions[$definition->name] = serialize($definition);
 }
 
 $def = var_export($classesDefinitions, true);
-file_put_contents(__DIR__.'/../classMap.php', <<<EOL
+file_put_contents(__DIR__ . '/../classMap.php', <<<EOL
 <?php
 /*
  * Do not change! This file is generated via scripts/generate.php.

@@ -52,7 +52,7 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
         }
 
         if ($node instanceof Node\Stmt\Class_) {
-            if (! $this->symbol->filterNodes($node)) {
+            if ($this->symbol->name !== $this->getNamespacedClassName($node)) {
                 return NodeVisitor::DONT_TRAVERSE_CHILDREN;
             }
 
@@ -247,18 +247,9 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
 
     private function getNamespacedClassName(Node\Stmt\Class_ $node)
     {
-        $name = $node->namespacedName
+        return $node->namespacedName
             ? $node->namespacedName->toString()
             : $node->name->toString();
-
-        /** @var Node\Attribute|null $nsAttribute */
-        $nsAttribute = collect($node->attrGroups)
-            ->flatMap->attrs
-            ->first(fn (Node\Attribute $a) => $a->name->toString() === 'NS' && is_string($a->args[0]->value->value ?? null));
-
-        $ns = $nsAttribute ? $nsAttribute->args[0]->value->value : '';
-
-        return $ns ? $ns.'\\'.Str::afterLast($name, '\\') : $name;
     }
 
     /**
