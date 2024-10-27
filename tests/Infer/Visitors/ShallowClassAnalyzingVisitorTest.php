@@ -59,8 +59,6 @@ function dumpDefinition(ClassDefinition $classDefinition) {
     dump($str);
 }
 
-
-
 test('fuck around and find out', function () {
 //    Benchmark::dd([
 //        fn () => analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php')),

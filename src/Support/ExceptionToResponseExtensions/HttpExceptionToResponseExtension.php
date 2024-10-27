@@ -6,6 +6,7 @@ use Dedoc\Scramble\Extensions\ExceptionToResponseExtension;
 use Dedoc\Scramble\Support\Generator\Response;
 use Dedoc\Scramble\Support\Generator\Schema;
 use Dedoc\Scramble\Support\Generator\Types as OpenApiTypes;
+use Dedoc\Scramble\Support\Type\Generic;
 use Dedoc\Scramble\Support\Type\Literal\LiteralIntegerType;
 use Dedoc\Scramble\Support\Type\Literal\LiteralStringType;
 use Dedoc\Scramble\Support\Type\ObjectType;
@@ -25,14 +26,7 @@ class HttpExceptionToResponseExtension extends ExceptionToResponseExtension
      */
     public function toResponse(Type $type)
     {
-        /*
-         * So you (Roman from future) are wondering what 7 or 0 is.
-         * When index is 7 – the type is honestly inferred – this the index of `TCode` template.
-         * When index is 0 - the type is manually constructed in other extensions.
-         */
-        $codeType = count($type->templateTypes ?? []) > 3
-            ? ($type->templateTypes[7] ?? null)
-            : ($type->templateTypes[0] ?? null);
+        $codeType = $this->getTemplateType($type, 'TStatusCode');
 
         if (! $codeType instanceof LiteralIntegerType) {
             return null;
@@ -42,7 +36,7 @@ class HttpExceptionToResponseExtension extends ExceptionToResponseExtension
             ->addProperty(
                 'message',
                 tap((new OpenApiTypes\StringType)->setDescription('Error overview.'), function (OpenApiTypes\StringType $t) use ($type) {
-                    $messageType = $type->templateTypes[1] ?? null;
+                    $messageType = $this->getTemplateType($type, 'TMessage');
                     if (! $messageType instanceof LiteralStringType) {
                         return;
                     }
@@ -57,5 +51,20 @@ class HttpExceptionToResponseExtension extends ExceptionToResponseExtension
                 'application/json',
                 Schema::fromType($responseBodyType)
             );
+    }
+
+    private function getTemplateType(ObjectType $type, string $templateName)
+    {
+        if (!$type instanceof Generic) {
+            return null;
+        }
+
+        $definition = $this->infer->analyzeClass($type->name);
+
+        $templateIndex = collect($definition->templateTypes)->search(fn ($t) => $t->name === $templateName);
+
+        return $templateIndex !== false
+            ? ($type->templateTypes[$templateIndex]) ?? null
+            : null;
     }
 }

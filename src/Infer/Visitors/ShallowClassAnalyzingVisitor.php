@@ -32,7 +32,7 @@ use function DeepCopy\deep_copy;
 
 /**
  * Shallow class analyzing does not do any assumptions about templates and does not try to infer them. It simply
- * created classes definitions based on method signatures and PHPDoc comments.
+ * creates classes definitions based on method signatures and PHPDoc comments.
  */
 class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
 {

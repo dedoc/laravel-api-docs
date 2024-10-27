@@ -91,7 +91,7 @@ class HttpException extends \RuntimeException implements HttpExceptionInterface
 
     /**
      * @template TNewHeaders of array<string, mixed>
-     * @phpstan-this-out static<_, _, _, _, TNewHeaders>
+     * @this-out static<_, _, _, _, TNewHeaders>
      * @param TNewHeaders $headers
      */
     public function setHeaders(array $headers): void
