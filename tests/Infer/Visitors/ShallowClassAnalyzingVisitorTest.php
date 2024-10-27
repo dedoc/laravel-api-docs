@@ -70,22 +70,22 @@ test('fuck around and find out', function () {
 //            }
 //        }
 //    ]);
-    Benchmark::dd(
-        fn () => analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php')),
-        10,
-    );
+//    Benchmark::dd(
+//        fn () => analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php')),
+//        10,
+//    );
 //    Benchmark::measure(
 //        fn () => $index = analyzeCodeShallowly_Test(
 //                 file_get_contents((new \ReflectionClass(Model::class))->getFileName())
 //               ),
 //        10,
 //    );
-    $index = analyzeCodeShallowly_Test(
-        file_get_contents((new \ReflectionClass(Model::class))->getFileName())
-    );
+//    $index = analyzeCodeShallowly_Test(
+//        file_get_contents((new \ReflectionClass(Model::class))->getFileName())
+//    );
 
 
-//    $index = analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php'));
+    $index = analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php'));
 //
 //    (new Infer($index))->analyzeClass(Hehe_Not_Exception::class);
 
