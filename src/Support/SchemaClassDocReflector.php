@@ -2,10 +2,14 @@
 
 namespace Dedoc\Scramble\Support;
 
+use Dedoc\Scramble\Infer\Reflector\ClassReflector;
+use Dedoc\Scramble\Infer\Services\FileNameResolver;
+use Dedoc\Scramble\PhpDoc\PhpDocTypeWalker;
+use Dedoc\Scramble\PhpDoc\ResolveFqnPhpDocTypeVisitor;
+use PhpParser\NameContext;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocChildNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
-use ReflectionClass;
 
 class SchemaClassDocReflector
 {
@@ -33,15 +37,50 @@ class SchemaClassDocReflector
         )));
     }
 
-    public static function createFromDocString(string $phpDocString)
+    public static function createFromDocString(string $phpDocString, ?string $definingClassName = null)
     {
-        return new self(PhpDoc::parse($phpDocString ?: '/** */'));
+        $parsedDoc = PhpDoc::parse($phpDocString ?: '/** */');
+
+        if ($definingClassName) {
+            $classReflector = ClassReflector::make($definingClassName);
+
+            $nameContext = $classReflector->getNameContext();
+
+            $parsedDoc = static::replaceClassNamesInDoc($parsedDoc, $nameContext);
+        }
+
+        return new self($parsedDoc);
     }
 
     public static function createFromClassName(string $className)
     {
-        $reflection = new ReflectionClass($className);
+        $classReflector = ClassReflector::make($className);
 
-        return new self(PhpDoc::parse($reflection->getDocComment() ?: '/** */'));
+        $nameContext = $classReflector->getNameContext();
+        $reflection = $classReflector->getReflection();
+
+        $parsedDoc = static::replaceClassNamesInDoc(PhpDoc::parse($reflection->getDocComment() ?: '/** */'), $nameContext);
+
+        return new self($parsedDoc);
+    }
+
+    private static function replaceClassNamesInDoc(PhpDocNode $docNode, NameContext $nameContext): PhpDocNode
+    {
+        $tagValues = [
+            ...$docNode->getReturnTagValues(),
+            ...$docNode->getVarTagValues(),
+            ...$docNode->getThrowsTagValues(),
+        ];
+
+        foreach ($tagValues as $tagValue) {
+            if (! $tagValue->type) {
+                continue;
+            }
+            PhpDocTypeWalker::traverse($tagValue->type, [
+                new ResolveFqnPhpDocTypeVisitor(new FileNameResolver($nameContext)),
+            ]);
+        }
+
+        return $docNode;
     }
 }
