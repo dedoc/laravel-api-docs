@@ -19,6 +19,7 @@ use Dedoc\Scramble\Support\Type\Type;
 use Dedoc\Scramble\Support\Type\TypeHelper;
 use Dedoc\Scramble\Support\Type\TypeWalker;
 use Dedoc\Scramble\Support\Type\VoidType;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use PhpParser\Comment\Doc;
 use PhpParser\Node;
@@ -133,6 +134,7 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
             $methodDefinition->type->templates[] = new TemplateType(
                 $templateTagValue->name,
                 is: $templateTagValue->bound ? PhpDocTypeHelper::toType($templateTagValue->bound) : null,
+                default: $templateTagValue->default ? PhpDocTypeHelper::toType($templateTagValue->default) : null,
             );
         }
 
@@ -228,6 +230,7 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
             fn (TemplateTagValueNode $n) => new TemplateType(
                 $n->name,
                 is: $n->bound ? PhpDocTypeHelper::toType($n->bound) : null,
+                default: $n->default ? PhpDocTypeHelper::toType($n->default) : null,
             ),
             $this->getAllTemplateDefinitions($comment),
         );
@@ -288,7 +291,17 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
     {
         $parentDefinition = deep_copy($parentDefinition);
 
-        $appliedTemplateTypes = $comment->getExtendsTagValues()[0]->type->genericTypes ?? [];
+        $appliedTemplateTypes = array_values(array_filter(Arr::take([
+            ...array_map(
+                fn ($typeNode) => PhpDocTypeHelper::toType($typeNode),
+                $definedGenericTypes = $comment->getExtendsTagValues()[0]->type->genericTypes ?? [],
+            ),
+            ...array_slice(
+                array_map(fn ($t) => $t->default, $parentDefinition->templateTypes),
+                count($definedGenericTypes),
+            )
+        ], count($parentDefinition->templateTypes))));
+
         if (! $appliedTemplateTypes) {
             return $parentDefinition;
         }
@@ -303,7 +316,7 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
                 $propertyDefinition->type = (new TypeWalker)->replace(
                     $propertyDefinition->type,
                     fn (Type $t) => $t === $template
-                        ? PhpDocTypeHelper::toType($appliedTemplateTypes[$templateIndex])
+                        ? $appliedTemplateTypes[$templateIndex]
                         : null,
                 );
             }
@@ -311,7 +324,7 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
                 $methodDefinition->type = (new TypeWalker)->replace(
                     $methodDefinition->type,
                     fn (Type $t) => $t === $template
-                        ? PhpDocTypeHelper::toType($appliedTemplateTypes[$templateIndex])
+                        ? $appliedTemplateTypes[$templateIndex]
                         : null,
                 );
             }

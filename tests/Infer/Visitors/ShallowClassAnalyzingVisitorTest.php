@@ -472,3 +472,21 @@ EOL;
         ->and($barDefinition->getMethodDefinition('wow')->type->toString())
         ->toBe('(): string');
 });
+
+// this out
+it('supports this out annotation', function () {
+    $code = <<<'EOL'
+<?php
+/**
+ * @template T
+ */
+class Foo
+{
+    /**
+     * @self-out self<string>
+     */
+    public function wow(){}
+}
+EOL;
+    $index = analyzeCodeShallowly_Test($code);
+});
