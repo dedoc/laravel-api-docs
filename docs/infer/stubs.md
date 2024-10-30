@@ -7,7 +7,8 @@ Type inference is a first class citizen in Scramble. So due to this, Scramble us
 For example, here is how `JsonResource` overrides look like:
 ```php
 /**
- * @template TResource of Model 
+ * @use-template TResource 
+ * @mixin TResource
  * @overrides JsonResource
  */
 class JsonResource
@@ -15,11 +16,10 @@ class JsonResource
     /** @var TResource */
     protected $resource;
     
-    /**
-     * @param TResource $resource
-     */
+    /** @param TResource $resource */
     public function __construct(mixed $resource) {}
 }
 ```
+And this annotation handles everything that needs for proper working of
 
 To define 
