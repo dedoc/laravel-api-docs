@@ -29,6 +29,7 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\TemplateTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
+
 use function DeepCopy\deep_copy;
 
 /**
@@ -299,7 +300,7 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
             ...array_slice(
                 array_map(fn ($t) => $t->default, $parentDefinition->templateTypes),
                 count($definedGenericTypes),
-            )
+            ),
         ], count($parentDefinition->templateTypes))));
 
         if (! $appliedTemplateTypes) {
@@ -307,7 +308,7 @@ class ShallowClassAnalyzingVisitor extends NodeVisitorAbstract
         }
 
         if (count($parentDefinition->templateTypes) !== count($appliedTemplateTypes)) {
-            throw new \Exception(count($parentDefinition->templateTypes)." template arguments is expected for extending ".$parentDefinition->name." class, and exactly ".count($appliedTemplateTypes)." passed");
+            throw new \Exception(count($parentDefinition->templateTypes).' template arguments is expected for extending '.$parentDefinition->name.' class, and exactly '.count($appliedTemplateTypes).' passed');
         }
 
         $parentDefinitionTemplates = $parentDefinition->templateTypes;

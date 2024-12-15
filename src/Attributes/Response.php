@@ -8,11 +8,9 @@ use Attribute;
 class Response
 {
     /**
-     * @param class-string $type
+     * @param  class-string  $type
      */
     public function __construct(
         public string $type,
-    )
-    {
-    }
+    ) {}
 }

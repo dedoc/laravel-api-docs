@@ -7,9 +7,6 @@ use Dedoc\Scramble\Infer\Scope\NodeTypesResolver;
 use Dedoc\Scramble\Infer\Scope\Scope;
 use Dedoc\Scramble\Infer\Scope\ScopeContext;
 use Dedoc\Scramble\Infer\Visitors\ShallowClassAnalyzingVisitor;
-use Illuminate\Support\Str;
-use PhpParser\ErrorHandler\Throwing;
-use PhpParser\NameContext;
 use PhpParser\Node;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor;
@@ -60,7 +57,7 @@ class ShallowAnalyzer
         $nodes = app(FileParser::class)->parseContent($code)->getStatements();
 
         $traverser = new NodeTraverser;
-        $traverser->addVisitor($nameResolverVisitor = new NodeVisitor\NameResolver());
+        $traverser->addVisitor($nameResolverVisitor = new NodeVisitor\NameResolver);
         $traverser->addVisitor(new ShallowClassAnalyzingVisitor(
             index: $index,
             scope: new Scope($index, new NodeTypesResolver, new ScopeContext, new FileNameResolver($nameResolverVisitor->getNameContext())),
@@ -80,7 +77,7 @@ class ShallowAnalyzer
     {
         $nodes = app(FileParser::class)->parseContent($code)->getStatements();
         $traverser = new NodeTraverser;
-        $traverser->addVisitor($nameResolverVisitor = new NodeVisitor\NameResolver());
+        $traverser->addVisitor($nameResolverVisitor = new NodeVisitor\NameResolver);
         $traverser->addVisitor($symbolsExtractor = new class($source) extends NodeVisitorAbstract
         {
             public function __construct(private string $source, public array $symbols = []) {}

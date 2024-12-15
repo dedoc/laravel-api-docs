@@ -31,7 +31,7 @@ foreach (app(Index::class)->classesDefinitions as $definition) {
 }
 
 $def = var_export($classesDefinitions, true);
-file_put_contents(__DIR__ . '/../classMap.php', <<<EOL
+file_put_contents(__DIR__.'/../classMap.php', <<<EOL
 <?php
 /*
  * Do not change! This file is generated via scripts/generate.php.

@@ -50,9 +50,9 @@ namespace {
     class RuntimeException extends Exception {}
 }
 
-
 namespace Symfony\Component\HttpKernel\Exception {
-    use Exception, Throwable;
+    use Exception;
+    use Throwable;
 
     /**
      * @template TStatusCode of int
@@ -66,11 +66,11 @@ namespace Symfony\Component\HttpKernel\Exception {
     class HttpException extends \RuntimeException implements HttpExceptionInterface
     {
         /**
-         * @param TStatusCode $statusCode
-         * @param TMessage $message
-         * @param TPrevious $previous
-         * @param THeaders $headers
-         * @param TCode $code
+         * @param  TStatusCode  $statusCode
+         * @param  TMessage  $message
+         * @param  TPrevious  $previous
+         * @param  THeaders  $headers
+         * @param  TCode  $code
          */
         public function __construct(
             private int $statusCode,
@@ -78,26 +78,23 @@ namespace Symfony\Component\HttpKernel\Exception {
             ?\Throwable $previous = null,
             private array $headers = [],
             int $code = 0,
-        ) {
-        }
+        ) {}
 
-        public static function fromStatusCode(int $statusCode, string $message = '', ?\Throwable $previous = null, array $headers = [], int $code = 0): self
-        {}
+        public static function fromStatusCode(int $statusCode, string $message = '', ?\Throwable $previous = null, array $headers = [], int $code = 0): self {}
 
         /** @return TStatusCode */
-        public function getStatusCode(): int
-        {}
+        public function getStatusCode(): int {}
 
         /** @return THeaders */
-        public function getHeaders(): array
-        {}
+        public function getHeaders(): array {}
 
         /**
          * @template TNewHeaders of array<string, mixed>
+         *
          * @this-out static<_, _, _, _, TNewHeaders>
-         * @param TNewHeaders $headers
+         *
+         * @param  TNewHeaders  $headers
          */
-        public function setHeaders(array $headers): void
-        {}
+        public function setHeaders(array $headers): void {}
     }
 }

@@ -19,11 +19,12 @@ function analyzeCodeShallowly_Test(string $code): Index
         ->buildIndex(new Index);
 }
 
-function dumpDefinition(ClassDefinition $classDefinition) {
+function dumpDefinition(ClassDefinition $classDefinition)
+{
     $str = "class $classDefinition->name";
     if ($classDefinition->templateTypes) {
         $classTemplatesString = collect($classDefinition->templateTypes)
-            ->map(fn (TemplateType $t) => ' * @template ' . Str::replace(' is ', ' of ', $t->toDefinitionString()))
+            ->map(fn (TemplateType $t) => ' * @template '.Str::replace(' is ', ' of ', $t->toDefinitionString()))
             ->join("\n");
 
         $str = "/**\n".$classTemplatesString."\n */\n".$str;
@@ -62,32 +63,31 @@ function dumpDefinition(ClassDefinition $classDefinition) {
 }
 
 test('fuck around and find out', function () {
-//    Benchmark::dd([
-//        fn () => analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php')),
-//        function () {
-//            foreach ((require __DIR__.'/../../../dictionaries/classMap.php') ?: [] as $className => $serializedClassDefinition) {
-//                unserialize($serializedClassDefinition);
-//            }
-//        }
-//    ]);
-//    Benchmark::dd(
-//        fn () => analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php')),
-//        10,
-//    );
-//    Benchmark::measure(
-//        fn () => $index = analyzeCodeShallowly_Test(
-//                 file_get_contents((new \ReflectionClass(Model::class))->getFileName())
-//               ),
-//        10,
-//    );
-//    $index = analyzeCodeShallowly_Test(
-//        file_get_contents((new \ReflectionClass(Model::class))->getFileName())
-//    );
-
+    //    Benchmark::dd([
+    //        fn () => analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php')),
+    //        function () {
+    //            foreach ((require __DIR__.'/../../../dictionaries/classMap.php') ?: [] as $className => $serializedClassDefinition) {
+    //                unserialize($serializedClassDefinition);
+    //            }
+    //        }
+    //    ]);
+    //    Benchmark::dd(
+    //        fn () => analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php')),
+    //        10,
+    //    );
+    //    Benchmark::measure(
+    //        fn () => $index = analyzeCodeShallowly_Test(
+    //                 file_get_contents((new \ReflectionClass(Model::class))->getFileName())
+    //               ),
+    //        10,
+    //    );
+    //    $index = analyzeCodeShallowly_Test(
+    //        file_get_contents((new \ReflectionClass(Model::class))->getFileName())
+    //    );
 
     $index = analyzeCodeShallowly_Test(file_get_contents(__DIR__.'/../../../dictionaries/core.php'));
-//
-//    (new Infer($index))->analyzeClass(Hehe_Not_Exception::class);
+    //
+    //    (new Infer($index))->analyzeClass(Hehe_Not_Exception::class);
 
     //    $index = analyzeCodeShallowly_Test(
     //        file_get_contents((new \ReflectionClass(Model::class))->getFileName())
@@ -95,12 +95,12 @@ test('fuck around and find out', function () {
     //    $index = analyzeCodeShallowly_Test(
     //        file_get_contents((new \ReflectionClass(Collection::class))->getFileName())
     //    );
-//    $type = analyzeFile('<?php', [], $index)->getExpressionType('new Dedoc\Scramble\Tests\Infer\Visitors\Hehe_Not_Exception("wow")');
+    //    $type = analyzeFile('<?php', [], $index)->getExpressionType('new Dedoc\Scramble\Tests\Infer\Visitors\Hehe_Not_Exception("wow")');
     //
 
-//    dd($type->toString());
-//    //
-//        return;
+    //    dd($type->toString());
+    //    //
+    //        return;
 
     foreach ($index->classesDefinitions as $classDefinition) {
         dumpDefinition($classDefinition);
@@ -109,7 +109,8 @@ test('fuck around and find out', function () {
     $a = 1;
 });
 
-class Hehe_Not_Exception extends HttpException {
+class Hehe_Not_Exception extends HttpException
+{
     public function __construct(string $message = '', ?\Throwable $previous = null, array $headers = [], int $code = 0)
     {
         parent::__construct(419, $message, $previous, $headers, $code);

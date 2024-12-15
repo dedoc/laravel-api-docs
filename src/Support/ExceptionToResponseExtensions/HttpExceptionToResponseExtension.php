@@ -55,7 +55,7 @@ class HttpExceptionToResponseExtension extends ExceptionToResponseExtension
 
     private function getTemplateType(ObjectType $type, string $templateName)
     {
-        if (!$type instanceof Generic) {
+        if (! $type instanceof Generic) {
             return null;
         }
 
