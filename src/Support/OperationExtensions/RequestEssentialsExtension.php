@@ -26,14 +26,20 @@ use Dedoc\Scramble\Support\Type\TypeHelper;
 use Dedoc\Scramble\Support\Type\Union;
 use Dedoc\Scramble\Support\Type\UnknownType;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
+use Illuminate\Routing\ImplicitRouteBinding;
 use Illuminate\Routing\Route;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Reflector;
 use Illuminate\Support\Str;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use ReflectionException;
+use ReflectionFunction;
+use ReflectionNamedType;
 use ReflectionParameter;
 
 class RequestEssentialsExtension extends OperationExtension
@@ -145,32 +151,89 @@ class RequestEssentialsExtension extends OperationExtension
         return Str::of($str)->matchAll('/\{(.*?)\}/')->values()->toArray();
     }
 
+    /**
+     * The goal here is to get the mapping of route names specified in route path to the parameters
+     * used in a route definition. The mapping then is used to get more information about the parameters for
+     * the documentation. For example, the description from PHPDoc will be used for a route path parameter
+     * description.
+     *
+     * So given the route path `/emails/{email_id}/recipients/{recipient_id}` and the route's method:
+     * `public function show(Request $request, string $emailId, string $recipientId)`, we get the mapping:
+     * `['email_id' => 'emailId', 'recipient_id' => 'recipientId']`.
+     *
+     * The trick is to avoid mapping parameters like `Request $request`, but to correctly map the model bindings
+     * (and other potential kind of bindings).
+     *
+     * During this method implementation, Laravel implicit binding checks against snake cased parameters.
+     *
+     * @see ImplicitRouteBinding::getParameterName
+     */
     private function getRoutePathParameters(RouteInfo $routeInfo)
     {
         [$route, $methodPhpDocNode] = [$routeInfo->route, $routeInfo->phpDoc()];
 
         $paramNames = $route->parameterNames();
-        $paramsWithRealNames = ($reflectionParams = collect($route->signatureParameters())
-            ->filter(function (ReflectionParameter $v) {
-                if (($type = $v->getType()) && ($type instanceof \ReflectionNamedType) && ($typeName = $type->getName())) {
-                    if (is_a($typeName, Request::class, true)) {
-                        return false;
-                    }
+
+        $implicitlyBoundReflectionParams = collect()
+            ->union($route->signatureParameters(UrlRoutable::class))
+            ->union($route->signatureParameters(['backedEnum' => true]))
+            ->keyBy('name');
+
+        $paramsValuesClasses = collect($paramNames)
+            ->mapWithKeys(function ($name) use ($implicitlyBoundReflectionParams) {
+                if ($explicitlyBoundParamType = $this->getExplicitlyBoundParamType($name)) {
+                    return [$name => $explicitlyBoundParamType];
                 }
 
-                return true;
-            })
-            ->values())
-            ->map(fn (ReflectionParameter $v) => $v->name)
-            ->all();
+                /** @var ReflectionParameter $implicitlyBoundParam */
+                $implicitlyBoundParam = $implicitlyBoundReflectionParams->first(
+                    fn (ReflectionParameter $p) => $p->name === $name || Str::snake($p->name) === $name,
+                );
 
-        if (count($paramNames) !== count($paramsWithRealNames)) {
-            $paramsWithRealNames = $paramNames;
-        }
+                if ($implicitlyBoundParam) {
+                    return [$name => Reflector::getParameterClassName($implicitlyBoundParam)];
+                }
+
+                return [
+                    $name => null,
+                ];
+            });
+
+        $routeParams = collect($route->signatureParameters());
+
+        $checkingRouteSignatureParameters = $route->signatureParameters();
+        $paramsToSignatureParametersNameMap = collect($paramNames)
+            ->mapWithKeys(function ($name) use ($paramsValuesClasses, &$checkingRouteSignatureParameters) {
+                $boundParamType = $paramsValuesClasses[$name];
+                $mappedParameterReflection = collect($checkingRouteSignatureParameters)
+                    ->first(function (ReflectionParameter $rp) use ($boundParamType) {
+                        $type = $rp->getType();
+
+                        if (! $type instanceof ReflectionNamedType || $type->isBuiltin()) {
+                            return true;
+                        }
+
+                        $className = Reflector::getParameterClassName($rp);
+
+                        return is_a($boundParamType, $className, true);
+                    });
+
+                if ($mappedParameterReflection) {
+                    $checkingRouteSignatureParameters = array_filter($checkingRouteSignatureParameters, fn ($v) => $v !== $mappedParameterReflection);
+                }
+
+                return [
+                    $name => $mappedParameterReflection,
+                ];
+            });
+
+        $paramsWithRealNames = $paramsToSignatureParametersNameMap
+            ->mapWithKeys(fn (?ReflectionParameter $reflectionParameter, $name) => [$name => $reflectionParameter?->name ?: $name])
+            ->values();
 
         $aliases = collect($paramNames)->mapWithKeys(fn ($name, $i) => [$name => $paramsWithRealNames[$i]])->all();
 
-        $reflectionParamsByKeys = $reflectionParams->keyBy->name;
+        $reflectionParamsByKeys = $routeParams->keyBy->name;
         $phpDocTypehintParam = $methodPhpDocNode
             ? collect($methodPhpDocNode->getParamTagValues())->keyBy(fn (ParamTagValueNode $n) => Str::replace('$', '', $n->parameterName))
             : collect();
@@ -181,7 +244,8 @@ class RequestEssentialsExtension extends OperationExtension
          * 2. PhpDoc Typehint
          * 3. String (?)
          */
-        $params = array_map(function (string $paramName) use ($routeInfo, $route, $aliases, $reflectionParamsByKeys, $phpDocTypehintParam) {
+        $params = array_map(function (string $paramName) use ($routeInfo, $route, $aliases, $reflectionParamsByKeys, $phpDocTypehintParam, $paramsValuesClasses) {
+            $originalParamName = $paramName;
             $paramName = $aliases[$paramName];
 
             $description = $phpDocTypehintParam[$paramName]?->description ?? '';
@@ -192,6 +256,7 @@ class RequestEssentialsExtension extends OperationExtension
                 $route,
                 $phpDocTypehintParam[$paramName] ?? null,
                 $reflectionParamsByKeys[$paramName] ?? null,
+                $paramsValuesClasses[$originalParamName] ?? null,
             );
 
             $param = Parameter::make($paramName, 'path')
@@ -208,9 +273,45 @@ class RequestEssentialsExtension extends OperationExtension
         return [$params, $aliases];
     }
 
-    private function getParameterType(string $paramName, string $description, RouteInfo $routeInfo, Route $route, ?ParamTagValueNode $phpDocParam, ?ReflectionParameter $reflectionParam)
+    private function getExplicitlyBoundParamType(string $name): ?string
     {
-        $type = new UnknownType;
+        if (! $binder = app(Router::class)->getBindingCallback($name)) {
+            return null;
+        }
+
+        try {
+            $reflection = new ReflectionFunction($binder);
+        } catch (ReflectionException) {
+            return null;
+        }
+
+        if ($returnType = $reflection->getReturnType()) {
+            return $returnType instanceof ReflectionNamedType && ! $returnType->isBuiltin()
+                ? $returnType->getName()
+                : null;
+        }
+
+        // in case this is a model binder
+        if (
+            ($modelClass = $reflection->getClosureUsedVariables()['class'] ?? null)
+            && is_string($modelClass)
+        ) {
+            return $modelClass;
+        }
+
+        return null;
+    }
+
+    private function getParameterType(
+        string $paramName,
+        string $description,
+        RouteInfo $routeInfo,
+        Route $route,
+        ?ParamTagValueNode $phpDocParam,
+        ?ReflectionParameter $reflectionParam,
+        ?string $boundClass,
+    ) {
+        $type = $boundClass ? new ObjectType($boundClass) : new UnknownType;
         if ($routeInfo->reflectionMethod()) {
             $type->setAttribute('file', $routeInfo->reflectionMethod()->getFileName());
             $type->setAttribute('line', $routeInfo->reflectionMethod()->getStartLine());

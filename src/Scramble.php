@@ -48,6 +48,14 @@ class Scramble
     public static array $extensions = [];
 
     /**
+     * Whether to throw an exception during docs generation. When `false`,
+     * documentation will be generated and issues added to the endpoint description
+     * that failed generation. When `true`, the exception will be thrown and docs
+     * generation will fail.
+     */
+    public static bool $throwOnError = false;
+
+    /**
      * Disables registration of default API documentation routes.
      */
     public static function ignoreDefaultRoutes(): void
@@ -184,5 +192,15 @@ class Scramble
         }
 
         return Scramble::$apis[$api];
+    }
+
+    public static function throwOnError(bool $throw = true): void
+    {
+        static::$throwOnError = $throw;
+    }
+
+    public function shouldThrowOnError(): bool
+    {
+        return static::$throwOnError;
     }
 }

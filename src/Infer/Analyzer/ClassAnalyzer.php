@@ -108,6 +108,7 @@ class ClassAnalyzer
                     returnType: new UnknownType,
                 ),
                 definingClassName: $name,
+                isStatic: $reflectionMethod->isStatic(),
             );
         }
 

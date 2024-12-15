@@ -49,6 +49,7 @@ class FunctionLikeHandler implements CreatesScope
         $scope->context->setFunctionDefinition($fnDefinition = new FunctionLikeDefinition(
             type: $fnType = new FunctionType($node->name->name ?? 'anonymous'),
             sideEffects: [],
+            isStatic: $node instanceof Node\Stmt\ClassMethod ? $node->isStatic() : false,
         ));
         $fnDefinition->isFullyAnalyzed = true;
 

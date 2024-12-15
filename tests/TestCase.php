@@ -17,6 +17,8 @@ class TestCase extends Orchestra
     {
         parent::setUp();
 
+        Scramble::throwOnError();
+
         $this->app->when(RulesToParameters::class)
             ->needs('$validationNodesResults')
             ->give([]);

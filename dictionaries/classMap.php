@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Do not change! This file is generated via scripts/generate.php.
  */

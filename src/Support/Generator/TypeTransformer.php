@@ -23,6 +23,7 @@ use Dedoc\Scramble\Support\Type\Literal\LiteralStringType;
 use Dedoc\Scramble\Support\Type\TemplateType;
 use Dedoc\Scramble\Support\Type\Type;
 use Dedoc\Scramble\Support\Type\Union;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 
@@ -221,46 +222,44 @@ class TypeTransformer
 
     private function handleUsingExtensions(Type $type)
     {
-        return array_reduce(
-            $this->typeToSchemaExtensions,
-            function ($acc, $extensionClass) use ($type) {
-                $extension = new $extensionClass($this->infer, $this, $this->components);
+        /** @var Collection $extensions */
+        $extensions = collect($this->typeToSchemaExtensions)
+            ->map(fn ($extensionClass) => new $extensionClass($this->infer, $this, $this->components))
+            ->filter->shouldHandle($type)
+            ->values();
 
-                if (! $extension->shouldHandle($type)) {
-                    return $acc;
-                }
+        $referenceExtension = $extensions->last();
 
-                /** @var Reference|null $reference */
-                $reference = method_exists($extension, 'reference')
-                    ? $extension->reference($type)
-                    : null;
+        /** @var Reference|null $reference */
+        $reference = $referenceExtension && method_exists($referenceExtension, 'reference')
+            ? $referenceExtension->reference($type)
+            : null;
 
-                if ($reference && $this->components->hasSchema($reference->fullName)) {
-                    return $reference;
-                }
+        if ($reference && $this->components->hasSchema($reference->fullName)) {
+            return $reference;
+        }
 
-                if ($reference) {
-                    $this->components->addSchema($reference->fullName, Schema::fromType(new UnknownType('Reference is being analyzed.')));
-                }
+        if ($reference) {
+            $this->components->addSchema($reference->fullName, Schema::fromType(new UnknownType('Reference is being analyzed.')));
+        }
 
-                if ($handledType = $extension->toSchema($type, $acc)) {
-                    if ($reference) {
-                        return $this->components->addSchema($reference->fullName, Schema::fromType($handledType));
-                    }
+        $handledType = $extensions
+            ->reduce(function ($acc, $extension) use ($type) {
+                return $extension->toSchema($type, $acc) ?: $acc;
+            });
 
-                    return $handledType;
-                }
+        if ($handledType && $reference) {
+            $reference = $this->components->addSchema($reference->fullName, Schema::fromType($handledType));
+        }
 
-                /*
-                 * If we couldn't handle a type, the reference is removed.
-                 */
-                if ($reference) {
-                    $this->components->removeSchema($reference->fullName);
-                }
+        /*
+        * If we couldn't handle a type, the reference is removed.
+        */
+        if (! $handledType && $reference) {
+            $this->components->removeSchema($reference->fullName);
+        }
 
-                return $acc;
-            }
-        );
+        return $reference ?: $handledType;
     }
 
     public function toResponse(Type $type)

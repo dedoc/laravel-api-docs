@@ -11,6 +11,8 @@ use Dedoc\Scramble\Support\Generator\Types\Type;
 use Dedoc\Scramble\Support\Generator\Types\UnknownType;
 use Dedoc\Scramble\Support\Generator\TypeTransformer;
 use Dedoc\Scramble\Support\Type\ObjectType;
+use Dedoc\Scramble\Support\Type\TypeHelper;
+use Dedoc\Scramble\Support\Type\Union;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
 use Illuminate\Validation\Rules\Enum;
@@ -139,6 +141,13 @@ class RulesMapper
         return $type;
     }
 
+    public function size(Type $type, $params)
+    {
+        $type = $this->min($type, $params);
+
+        return $this->max($type, $params);
+    }
+
     public function in(Type $type, $params)
     {
         return $type->enum(
@@ -161,9 +170,26 @@ class RulesMapper
 
         $enumName = $getProtectedValue($rule, 'type');
 
-        return $this->openApiTransformer->transform(
-            new ObjectType($enumName)
-        );
+        $objectType = new ObjectType($enumName);
+
+        $except = $getProtectedValue($rule, 'except');
+        $only = $getProtectedValue($rule, 'only');
+
+        if ($except || $only) {
+            $cases = collect($enumName::cases())
+                ->reject(fn ($case) => in_array($case, $except))
+                ->filter(fn ($case) => ! $only || in_array($case, $only));
+
+            if (! isset($cases->first()?->value)) {
+                return new UnknownType("$enumName enum doesnt have values (only/except context)");
+            }
+
+            return $this->openApiTransformer->transform(Union::wrap(
+                $cases->map(fn ($c) => TypeHelper::createTypeFromValue($c->value))->all()
+            ));
+        }
+
+        return $this->openApiTransformer->transform($objectType);
     }
 
     public function image(Type $type)

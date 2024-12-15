@@ -17,6 +17,7 @@ class FunctionLikeDefinition
         public array $sideEffects = [],
         public array $argumentsDefaults = [],
         public ?string $definingClassName = null,
+        public bool $isStatic = false,
     ) {}
 
     public function isFullyAnalyzed(): bool

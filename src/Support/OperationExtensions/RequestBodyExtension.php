@@ -42,7 +42,7 @@ class RequestBodyExtension extends OperationExtension
         try {
             $rulesResults = collect($this->extractRouteRequestValidationRules($routeInfo, $routeInfo->methodNode()));
         } catch (Throwable $exception) {
-            if (app()->environment('testing')) {
+            if (Scramble::shouldThrowOnError()) {
                 throw $exception;
             }
             $description = $description->append('⚠️Cannot generate request documentation: '.$exception->getMessage());

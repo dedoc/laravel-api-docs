@@ -4,6 +4,7 @@
 
 use Dedoc\Scramble\Support\Type\Generic;
 use Dedoc\Scramble\Support\Type\UnknownType;
+use Dedoc\Scramble\Tests\Infer\stubs\InvokableFoo;
 
 it('supports creating an object without constructor', function () {
     $type = analyzeFile(<<<'EOD'
@@ -236,3 +237,15 @@ class SameUnionTypes_Foo
         return 1;
     }
 }
+
+it('resolves invokable call from parent class', function () {
+    $type = analyzeClass(InvokableFoo::class)->getExpressionType('(new Dedoc\Scramble\Tests\Infer\stubs\InvokableFoo)("foo")');
+
+    expect($type->toString())->toBe('string(foo)');
+});
+
+it('handles invokable call to Closure type without failing (#636)', function () {
+    $type = getStatementType('(new \Closure)("foo")');
+
+    expect($type->toString())->toBe('unknown');
+});

@@ -7,4 +7,11 @@ it(
     ['$var::class', 'string'],
     ['(new SomeType)::class', 'string(SomeType)'],
     ['SomeType::class', 'string(SomeType)'],
+    ['Enum_ClassConstFetchTypesTest::FOO', 'Enum_ClassConstFetchTypesTest::FOO'],
 ]);
+
+enum Enum_ClassConstFetchTypesTest: string
+{
+    case FOO = 'foo';
+    case BAR = 'bar';
+}

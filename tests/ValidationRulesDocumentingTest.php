@@ -80,6 +80,38 @@ it('extract rules from enum rule', function () {
     assertMatchesSnapshot(collect($params)->map->toArray()->all());
 });
 
+it('extract rules from enum rule with only', function () {
+    $rules = [
+        'status' => (new Enum(StatusValidationEnum::class))->only([StatusValidationEnum::DRAFT, StatusValidationEnum::ARCHIVED]),
+    ];
+
+    $params = app()->make(RulesToParameters::class, ['rules' => $rules])->handle();
+
+    expect($params[0]->toArray()['schema'])->toBe([
+        'type' => 'string',
+        'enum' => [
+            'draft',
+            'archived',
+        ],
+    ]);
+});
+
+it('extract rules from enum rule with except', function () {
+    $rules = [
+        'status' => (new Enum(StatusValidationEnum::class))->except(StatusValidationEnum::DRAFT),
+    ];
+
+    $params = app()->make(RulesToParameters::class, ['rules' => $rules])->handle();
+
+    expect($params[0]->toArray()['schema'])->toBe([
+        'type' => 'string',
+        'enum' => [
+            'published',
+            'archived',
+        ],
+    ]);
+});
+
 it('extract rules from object like rules', function () {
     $rules = [
         'channels.agency' => 'nullable',

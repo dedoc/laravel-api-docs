@@ -51,6 +51,37 @@ class Foo_RequestRulesTest_Controller
     public function foo(ModelWithRulesMethod $model) {}
 }
 
+it('uses explicit binding to infer more info about path params using Route::model', function () {
+    RouteFacade::model('model_bound', RequestEssentialsExtensionTest_SimpleModel::class);
+
+    $openApiDocument = generateForRoute(function () {
+        return RouteFacade::get('api/test/{model_bound}', [Foo_RequestExplicitlyBoundTest_Controller::class, 'foo']);
+    });
+
+    expect($openApiDocument['paths']['/test/{model_bound}']['get']['parameters'][0])
+        ->toHaveKey('schema.type', 'integer')
+        ->toHaveKey('description', 'The model bound ID');
+});
+it('uses explicit binding to infer more info about path params using Route::bind with typehint', function () {
+    RouteFacade::bind('model_bound', fn ($value): RequestEssentialsExtensionTest_SimpleModel => RequestEssentialsExtensionTest_SimpleModel::findOrFail($value));
+
+    $openApiDocument = generateForRoute(function () {
+        return RouteFacade::get('api/test/{model_bound}', [Foo_RequestExplicitlyBoundTest_Controller::class, 'foo']);
+    });
+
+    expect($openApiDocument['paths']['/test/{model_bound}']['get']['parameters'][0])
+        ->toHaveKey('schema.type', 'integer')
+        ->toHaveKey('description', 'The model bound ID');
+});
+class RequestEssentialsExtensionTest_SimpleModel extends \Illuminate\Database\Eloquent\Model
+{
+    protected $table = 'users';
+}
+class Foo_RequestExplicitlyBoundTest_Controller
+{
+    public function foo() {}
+}
+
 it('handles custom key from route to determine model route key type', function () {
     $openApiDocument = generateForRoute(function () {
         return RouteFacade::get('api/test/{user:name}', [CustomKey_RequestEssentialsExtensionTest_Controller::class, 'foo']);

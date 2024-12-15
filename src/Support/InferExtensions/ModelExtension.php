@@ -4,7 +4,6 @@ namespace Dedoc\Scramble\Support\InferExtensions;
 
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
-use Dedoc\Scramble\Infer\Definition\ClassDefinition;
 use Dedoc\Scramble\Infer\Extensions\Event\MethodCallEvent;
 use Dedoc\Scramble\Infer\Extensions\Event\PropertyFetchEvent;
 use Dedoc\Scramble\Infer\Extensions\MethodReturnTypeExtension;
@@ -29,6 +28,7 @@ use Dedoc\Scramble\Support\Type\UnknownType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Throwable;
 
 class ModelExtension implements MethodReturnTypeExtension, PropertyTypeExtension
 {
@@ -154,10 +154,7 @@ class ModelExtension implements MethodReturnTypeExtension, PropertyTypeExtension
             return null;
         }
 
-        /** @var ClassDefinition $definition */
-        $definition = $event->getDefinition();
-
-        if (array_key_exists('toArray', $definition?->methods ?: [])) {
+        if ($this->getRealToArrayMethodDefinitionClassName($event) !== Model::class) {
             return null;
         }
 
@@ -207,5 +204,23 @@ class ModelExtension implements MethodReturnTypeExtension, PropertyTypeExtension
         $prefix = chr(0).'*'.chr(0);
 
         return $array[$prefix.$name];
+    }
+
+    /**
+     * Due to vendor classes being not analyzed for now, we may have a situation when defining class name in event is not
+     * truly represents the location of the method. But we want to make sure to get it right.
+     */
+    private function getRealToArrayMethodDefinitionClassName(MethodCallEvent $event)
+    {
+        $className = $event->methodDefiningClassName ?: $event->getInstance()->name;
+
+        try {
+            $reflectionMethod = new \ReflectionMethod($className, 'toArray');
+
+            return $reflectionMethod->getDeclaringClass()->getName();
+        } catch (Throwable) {
+        }
+
+        return $event->methodDefiningClassName;
     }
 }

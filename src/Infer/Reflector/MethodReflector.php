@@ -48,7 +48,10 @@ class MethodReflector
 
     public function getReflection(): ReflectionMethod
     {
-        return new ReflectionMethod($this->className, $this->name);
+        /**
+         * \ReflectionMethod could've been used here, but for `\Closure::__invoke` it fails when constructed manually
+         */
+        return (new \ReflectionClass($this->className))->getMethod($this->name);
     }
 
     /**

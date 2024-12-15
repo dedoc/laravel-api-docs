@@ -9,6 +9,7 @@ use Dedoc\Scramble\PhpDoc\ResolveFqnPhpDocTypeVisitor;
 use PhpParser\NameContext;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocChildNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
 
 class SchemaClassDocReflector
@@ -30,10 +31,13 @@ class SchemaClassDocReflector
         return trim(implode("\n", array_map(
             static function (PhpDocChildNode $child): string {
                 $s = (string) $child;
+                if ($child instanceof PhpDocTagNode) {
+                    $s = explode("\n", $s, 2)[1] ?? '';
+                }
 
                 return $s === '' ? '' : ' '.$s;
             },
-            array_filter($this->phpDoc->children, fn ($n) => $n instanceof PhpDocTextNode)
+            array_filter($this->phpDoc->children, fn ($n) => $n instanceof PhpDocTextNode || $n instanceof PhpDocTagNode)
         )));
     }
 

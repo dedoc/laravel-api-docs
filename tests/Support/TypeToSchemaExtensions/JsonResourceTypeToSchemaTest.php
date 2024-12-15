@@ -37,6 +37,16 @@ it('supports parent toArray class', function (string $className, array $expected
 
     expect($extension->toSchema($type)->toArray())->toBe($expectedSchemaArray);
 })->with([
+    [JsonResourceTypeToSchemaTest_NestedSample::class, [
+        'type' => 'object',
+        'properties' => [
+            'id' => ['type' => 'integer'],
+            'name' => ['type' => 'string'],
+            'foo' => ['type' => 'string', 'example' => 'bar'],
+            'nested' => ['type' => 'string', 'example' => 'true'],
+        ],
+        'required' => ['id', 'name', 'foo', 'nested'],
+    ]],
     [JsonResourceTypeToSchemaTest_Sample::class, [
         'type' => 'object',
         'properties' => [
@@ -72,11 +82,24 @@ class JsonResourceTypeToSchemaTest_NoToArraySample extends \Illuminate\Http\Reso
  */
 class JsonResourceTypeToSchemaTest_SpreadSample extends \Illuminate\Http\Resources\Json\JsonResource
 {
-    public function toArray($request)
+    public function toArray($request): array
     {
         return [
             ...parent::toArray($request),
             'foo' => 'bar',
+        ];
+    }
+}
+/**
+ * @property JsonResourceTypeToSchemaTest_User $resource
+ */
+class JsonResourceTypeToSchemaTest_NestedSample extends JsonResourceTypeToSchemaTest_SpreadSample
+{
+    public function toArray($request): array
+    {
+        return [
+            ...parent::toArray($request),
+            'nested' => 'true',
         ];
     }
 }

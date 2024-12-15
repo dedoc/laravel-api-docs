@@ -40,6 +40,23 @@ class ExtensionsBroker
         return null;
     }
 
+    public function getMethodCallExceptions($event)
+    {
+        $extensions = array_filter($this->extensions, function ($e) use ($event) {
+            return $e instanceof MethodCallExceptionsExtension
+                && $e->shouldHandle($event->getInstance());
+        });
+
+        $exceptions = [];
+        foreach ($extensions as $extension) {
+            if ($extensionExceptions = $extension->getMethodCallExceptions($event)) {
+                $exceptions = array_merge($exceptions, $extensionExceptions);
+            }
+        }
+
+        return $exceptions;
+    }
+
     public function getStaticMethodReturnType($event)
     {
         $extensions = array_filter($this->extensions, function ($e) use ($event) {
