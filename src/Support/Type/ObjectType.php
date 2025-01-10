@@ -11,9 +11,10 @@ use Dedoc\Scramble\Infer\Scope\Scope;
 
 class ObjectType extends AbstractType
 {
-    public function __construct(
-        public string $name,
-    ) {}
+    public function __construct(public string $name)
+    {
+        $this->name = ltrim($this->name, '\\');
+    }
 
     public function isInstanceOf(string $className)
     {
