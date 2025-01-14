@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="{{ $config->get('ui.theme', 'light') }}">
+<html lang="en" data-theme-pref="{{ $config->get('ui.theme', 'system') }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -7,6 +7,23 @@
 
     <script src="https://unpkg.com/@stoplight/elements@8.3.4/web-components.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements@8.3.4/styles.min.css">
+
+    <script>
+        const onThemeChange = ({
+            matches
+        }) => {
+            const pref = document.documentElement.getAttribute('data-theme-pref')
+            if (pref === 'system') {
+                document.documentElement.setAttribute('data-theme', matches ? 'dark' : 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', pref);
+            }
+        };
+
+        onThemeChange(window.matchMedia('(prefers-color-scheme: dark)'));
+        window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', onThemeChange);
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onThemeChange);
+    </script>
 
     <script>
         const originalFetch = window.fetch;

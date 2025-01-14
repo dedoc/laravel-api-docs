@@ -42,9 +42,9 @@ return [
         'title' => null,
 
         /*
-         * Define the theme of the documentation. Available options are `light` and `dark`.
+         * Define the theme of the documentation. Available options are `light`, `dark` and `system`.
          */
-        'theme' => 'light',
+        'theme' => 'system',
 
         /*
          * Hide the `Try It` feature. Enabled by default.
