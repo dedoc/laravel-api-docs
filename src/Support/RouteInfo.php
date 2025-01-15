@@ -2,6 +2,7 @@
 
 namespace Dedoc\Scramble\Support;
 
+use Closure;
 use Dedoc\Scramble\Infer;
 use Dedoc\Scramble\Infer\Reflector\MethodReflector;
 use Dedoc\Scramble\Support\Generator\TypeTransformer;
@@ -38,6 +39,11 @@ class RouteInfo
     public function isClassBased(): bool
     {
         return is_string($this->route->getAction('uses'));
+    }
+
+    public function isClosureBased(): bool
+    {
+        return $this->route->getAction('uses')(...) instanceof Closure;
     }
 
     public function className(): ?string

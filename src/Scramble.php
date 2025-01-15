@@ -17,6 +17,9 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route as RouteFacade;
 use LogicException;
 
+/**
+ * @phpstan-type OperationExtensionClosure = Closure(Operation, RouteInfo): void
+ */
 class Scramble
 {
     public static $routeResolver = null;
@@ -43,7 +46,7 @@ class Scramble
     /**
      * Extensions registered using programmatic API.
      *
-     * @var class-string<ExceptionToResponseExtension|OperationExtension|TypeToSchemaExtension|InferExtension>[]
+     * @var list<class-string<ExceptionToResponseExtension|OperationExtension|TypeToSchemaExtension|InferExtension>|(Closure(Operation, RouteInfo): void)>
      */
     public static array $extensions = [];
 
@@ -99,19 +102,23 @@ class Scramble
     }
 
     /**
-     * @param  class-string<ExceptionToResponseExtension|OperationExtension|TypeToSchemaExtension|InferExtension>  $extensionClassName
+     * @param  class-string<ExceptionToResponseExtension|OperationExtension|TypeToSchemaExtension|InferExtension>|(callable(Operation, RouteInfo): void)  $extension
      */
-    public static function registerExtension(string $extensionClassName): void
+    public static function registerExtension(string|callable $extension): void
     {
-        static::$extensions[] = $extensionClassName;
+        $extension = is_string($extension) ? $extension : $extension(...);
+
+        static::$extensions[] = array_merge(static::$extensions, [$extension]);
     }
 
     /**
-     * @param  class-string<ExceptionToResponseExtension|OperationExtension|TypeToSchemaExtension|InferExtension>[]  $extensionClassNames
+     * @param  list<class-string<ExceptionToResponseExtension|OperationExtension|TypeToSchemaExtension|InferExtension>|(callable(Operation, RouteInfo): void)>  $extensions
      */
-    public static function registerExtensions(array $extensionClassNames): void
+    public static function registerExtensions(array $extensions): void
     {
-        static::$extensions = array_merge(static::$extensions, $extensionClassNames);
+        foreach ($extensions as $extension) {
+            static::registerExtension($extension);
+        }
     }
 
     /**

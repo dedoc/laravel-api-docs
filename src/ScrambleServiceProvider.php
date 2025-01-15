@@ -2,6 +2,7 @@
 
 namespace Dedoc\Scramble;
 
+use Closure;
 use Dedoc\Scramble\Console\Commands\AnalyzeDocumentation;
 use Dedoc\Scramble\Console\Commands\ExportDocumentation;
 use Dedoc\Scramble\Extensions\ExceptionToResponseExtension;
@@ -126,13 +127,13 @@ class ScrambleServiceProvider extends PackageServiceProvider
             });
 
         $this->app->when(OperationBuilder::class)
-            ->needs('$extensionsClasses')
+            ->needs('$extensions')
             ->give(function () {
                 $extensions = array_merge(config('scramble.extensions', []), Scramble::$extensions);
 
                 $operationExtensions = array_values(array_filter(
                     $extensions,
-                    fn ($e) => is_a($e, OperationExtension::class, true),
+                    fn ($e) => is_a($e, OperationExtension::class, true) || is_a($e, Closure::class),
                 ));
 
                 return array_merge([
