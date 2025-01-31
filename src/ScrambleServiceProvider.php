@@ -3,6 +3,7 @@
 namespace Dedoc\Scramble;
 
 use Dedoc\Scramble\Configuration\GeneratorConfigCollection;
+use Dedoc\Scramble\Configuration\OperationTransformers;
 use Dedoc\Scramble\Configuration\ParametersExtractors;
 use Dedoc\Scramble\Console\Commands\AnalyzeDocumentation;
 use Dedoc\Scramble\Console\Commands\ExportDocumentation;
@@ -15,6 +16,7 @@ use Dedoc\Scramble\Infer\Extensions\IndexBuildingBroker;
 use Dedoc\Scramble\Infer\Extensions\InferExtension;
 use Dedoc\Scramble\Infer\Scope\Index;
 use Dedoc\Scramble\Infer\Services\FileParser;
+use Dedoc\Scramble\OperationTransformers\ExtensionWrapperTransformer;
 use Dedoc\Scramble\Support\ExceptionToResponseExtensions\AuthenticationExceptionToResponseExtension;
 use Dedoc\Scramble\Support\ExceptionToResponseExtensions\AuthorizationExceptionToResponseExtension;
 use Dedoc\Scramble\Support\ExceptionToResponseExtensions\HttpExceptionToResponseExtension;
@@ -216,7 +218,28 @@ class ScrambleServiceProvider extends PackageServiceProvider
 
     public function bootingPackage()
     {
-        Scramble::configure()->useConfig(config('scramble'));
+        Scramble::configure()
+            ->useConfig(config('scramble'))
+            ->withOperationTransformers(function (OperationTransformers $transformers) {
+                $extensions = array_merge(config('scramble.extensions', []), Scramble::$extensions);
+
+                $operationExtensions = array_values(array_filter(
+                    $extensions,
+                    fn ($e) => is_a($e, OperationExtension::class, true),
+                ));
+
+                $operationExtensions = array_merge([
+                    RequestEssentialsExtension::class,
+                    RequestBodyExtension::class,
+                    ErrorResponsesExtension::class,
+                    ResponseExtension::class,
+                    DeprecationExtension::class,
+                ], $operationExtensions);
+
+                $transformers->append(array_map(function ($extension) {
+                    return new ExtensionWrapperTransformer($extension);
+                }, $operationExtensions));
+            });
 
         $this->app->booted(function (Application $app) {
             Scramble::configure()

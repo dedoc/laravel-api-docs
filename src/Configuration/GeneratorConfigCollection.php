@@ -9,6 +9,9 @@ use LogicException;
 
 class GeneratorConfigCollection
 {
+    /**
+     * @var array<string, GeneratorConfig>
+     */
     private array $apis = [];
 
     public function __construct()
@@ -20,6 +23,7 @@ class GeneratorConfigCollection
     {
         return (new GeneratorConfig(
             parametersExtractors: new ParametersExtractors,
+            operationTransformers: new OperationTransformers,
         ))->expose(
             ui: fn (Router $router, $action) => $router->get('docs/api', $action)->name('scramble.docs.ui'),
             document: fn (Router $router, $action) => $router->get('docs/api.json', $action)->name('scramble.docs.document'),
@@ -39,9 +43,8 @@ class GeneratorConfigCollection
     {
         $this->apis[$name] = $generatorConfig = new GeneratorConfig(
             config: array_merge(config('scramble') ?: [], $config),
-            parametersExtractors: isset($this->apis[Scramble::DEFAULT_API])
-                ? $this->apis[Scramble::DEFAULT_API]->parametersExtractors
-                : new ParametersExtractors,
+            parametersExtractors: $this->apis[Scramble::DEFAULT_API]->parametersExtractors,
+            operationTransformers: $this->apis[Scramble::DEFAULT_API]->operationTransformers,
         );
 
         return $generatorConfig;

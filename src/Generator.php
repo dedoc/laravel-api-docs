@@ -4,9 +4,11 @@ namespace Dedoc\Scramble;
 
 use Dedoc\Scramble\Attributes\ExcludeAllRoutesFromDocs;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
+use Dedoc\Scramble\Contexts\OperationTransformerContext;
 use Dedoc\Scramble\Exceptions\RouteAware;
 use Dedoc\Scramble\Infer\Services\FileParser;
 use Dedoc\Scramble\OpenApiVisitor\SchemaEnforceVisitor;
+use Dedoc\Scramble\Reflections\ReflectionRoute;
 use Dedoc\Scramble\Support\Generator\Components;
 use Dedoc\Scramble\Support\Generator\InfoObject;
 use Dedoc\Scramble\Support\Generator\OpenApi;
@@ -34,7 +36,6 @@ class Generator
     public function __construct(
         private OperationBuilder $operationBuilder,
         private ServerFactory $serverFactory,
-        private FileParser $fileParser,
         private Infer $infer
     ) {}
 
@@ -202,13 +203,13 @@ class Generator
 
     private function routeToOperation(OpenApi $openApi, Route $route, GeneratorConfig $config, TypeTransformer $typeTransformer)
     {
-        $routeInfo = new RouteInfo($route, $this->infer, $typeTransformer);
+        $reflectionRoute = new ReflectionRoute($route, $this->infer, $typeTransformer);
 
-        if (! $routeInfo->isClassBased()) {
+        if (! $reflectionRoute->isControllerAction()) {
             return null;
         }
 
-        $operation = $this->operationBuilder->build($routeInfo, $openApi, $config, $typeTransformer);
+        $operation = $this->operationBuilder->build($reflectionRoute, $openApi, $config, $typeTransformer);
 
         $this->ensureSchemaTypes($route, $operation);
 

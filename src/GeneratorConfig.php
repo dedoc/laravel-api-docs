@@ -3,11 +3,14 @@
 namespace Dedoc\Scramble;
 
 use Closure;
+use Dedoc\Scramble\Configuration\OperationTransformers;
 use Dedoc\Scramble\Configuration\ParametersExtractors;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use ReflectionFunction;
+use ReflectionNamedType;
 
 class GeneratorConfig
 {
@@ -26,6 +29,7 @@ class GeneratorConfig
         private ?Closure $routeResolver = null,
         private array $afterOpenApiGenerated = [],
         public readonly ParametersExtractors $parametersExtractors = new ParametersExtractors,
+        public readonly OperationTransformers $operationTransformers = new OperationTransformers,
     ) {}
 
     public function config(array $config)
@@ -100,6 +104,36 @@ class GeneratorConfig
         $callback($this->parametersExtractors);
 
         return $this;
+    }
+
+    public function withOperationTransformers(array|string|callable $cb): static
+    {
+        if ($this->isOperationTransformerMapper($cb)) {
+            $cb($this->operationTransformers);
+
+            return $this;
+        }
+
+        $cb = function (OperationTransformers $transformers) use ($cb) {
+            $transformers->append($cb);
+        };
+
+        $cb($this->operationTransformers);
+
+        return $this;
+    }
+
+    private function isOperationTransformerMapper($cb): bool
+    {
+        if (! $cb instanceof Closure) {
+            return false;
+        }
+
+        $reflection = new ReflectionFunction($cb);
+
+        return count($reflection->getParameters()) === 1
+            && $reflection->getParameters()[0]->getType() instanceof ReflectionNamedType
+            && is_a($reflection->getParameters()[0]->getType()->getName(), OperationTransformers::class, true);
     }
 
     public function get(string $key, mixed $default = null)
