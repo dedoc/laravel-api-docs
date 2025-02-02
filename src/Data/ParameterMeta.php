@@ -13,17 +13,25 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 class ParameterMeta
 {
     public string $in;
+
     public string $description;
+
     public string $format;
+
     public bool $inQuery;
+
     public bool $isIgnored;
+
     /**
      * Parameters names with dot will be represented as objects. Setting `$isFlat` to `true` will preserve
      * dots in names and won't represent it as an object.
      */
     public bool $isFlat;
+
     public Schema $schema;
+
     public mixed $default;
+
     public mixed $example;
 
     public static function applyDataFromPhpDoc(
@@ -31,8 +39,7 @@ class ParameterMeta
         ?PhpDocNode $phpDoc,
         TypeTransformer $typeTransformer,
         bool $preferString = false
-    ): self
-    {
+    ): self {
         if (! $phpDoc) {
             return $meta;
         }

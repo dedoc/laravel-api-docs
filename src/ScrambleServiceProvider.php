@@ -7,7 +7,6 @@ use Dedoc\Scramble\Configuration\OperationTransformers;
 use Dedoc\Scramble\Configuration\ParametersExtractors;
 use Dedoc\Scramble\Console\Commands\AnalyzeDocumentation;
 use Dedoc\Scramble\Console\Commands\ExportDocumentation;
-use Dedoc\Scramble\Data\Parameter;
 use Dedoc\Scramble\Extensions\ExceptionToResponseExtension;
 use Dedoc\Scramble\Extensions\OperationExtension;
 use Dedoc\Scramble\Extensions\TypeToSchemaExtension;

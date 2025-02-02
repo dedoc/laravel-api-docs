@@ -49,7 +49,7 @@ class Schema
     }
 
     /**
-     * @param ParameterData[] $parameters
+     * @param  ParameterData[]  $parameters
      * @return ObjectType
      */
     public static function createFromParameters(array $parameters)
