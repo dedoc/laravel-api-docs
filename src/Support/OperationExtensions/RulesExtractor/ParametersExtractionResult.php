@@ -2,11 +2,9 @@
 
 namespace Dedoc\Scramble\Support\OperationExtensions\RulesExtractor;
 
-use Dedoc\Scramble\Support\Generator\Parameter;
+use Dedoc\Scramble\Data\Parameter;
 
-/**
- * @internal
- */
+/** @internal */
 class ParametersExtractionResult
 {
     /**

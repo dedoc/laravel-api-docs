@@ -1,6 +1,6 @@
 <?php
 
-namespace Dedoc\Scramble\Attributes;
+namespace Dedoc\Scramble\Data;
 
 use Dedoc\Scramble\Support\Generator\Example as OpenApiExample;
 use Dedoc\Scramble\Support\Generator\MissingValue as OpenApiMissingValue;

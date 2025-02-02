@@ -3,6 +3,7 @@
 namespace Dedoc\Scramble\Attributes;
 
 use Attribute;
+use Dedoc\Scramble\Data\MissingValue;
 
 #[Attribute(Attribute::IS_REPEATABLE | Attribute::TARGET_ALL)]
 class HeaderParameter extends Parameter

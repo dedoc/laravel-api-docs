@@ -2,12 +2,12 @@
 
 namespace Dedoc\Scramble\Support\OperationExtensions\ParameterExtractor;
 
-use Dedoc\Scramble\Attributes\Example;
-use Dedoc\Scramble\Attributes\MissingValue;
 use Dedoc\Scramble\Attributes\Parameter as ParameterAttribute;
+use Dedoc\Scramble\Data\Example;
+use Dedoc\Scramble\Data\MissingValue;
 use Dedoc\Scramble\PhpDoc\PhpDocTypeHelper;
 use Dedoc\Scramble\Support\Generator\MissingExample;
-use Dedoc\Scramble\Support\Generator\Parameter;
+use Dedoc\Scramble\Data\Parameter;
 use Dedoc\Scramble\Support\Generator\Schema;
 use Dedoc\Scramble\Support\Generator\Types\MixedType;
 use Dedoc\Scramble\Support\Generator\TypeTransformer;

@@ -5,6 +5,7 @@ namespace Dedoc\Scramble;
 use Closure;
 use Dedoc\Scramble\Configuration\DocumentTransformers;
 use Dedoc\Scramble\Configuration\OperationTransformers;
+use Dedoc\Scramble\Configuration\Parameters;
 use Dedoc\Scramble\Configuration\ParametersExtractors;
 use Dedoc\Scramble\Configuration\ServerVariables;
 use Dedoc\Scramble\Contracts\DocumentTransformer;
@@ -35,6 +36,7 @@ class GeneratorConfig
         public readonly OperationTransformers $operationTransformers = new OperationTransformers,
         public readonly DocumentTransformers $documentTransformers = new DocumentTransformers,
         public readonly ServerVariables $serverVariables = new ServerVariables,
+        public readonly Parameters $parameters = new Parameters,
     ) {}
 
     public function config(array $config)
@@ -175,6 +177,22 @@ class GeneratorConfig
         }
 
         $this->serverVariables->use($variables);
+
+        return $this;
+    }
+
+    /**
+     * @param  (callable(Parameters): void)|Parameters[]  $parameters
+     */
+    public function withParameters(callable|array $parameters)
+    {
+        if (is_callable($parameters)) {
+            $parameters($this->parameters);
+
+            return $this;
+        }
+
+        $this->parameters->use($parameters);
 
         return $this;
     }

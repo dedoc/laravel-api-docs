@@ -2,9 +2,9 @@
 
 namespace Dedoc\Scramble\Tests\Attributes;
 
-use Dedoc\Scramble\Attributes\Example;
 use Dedoc\Scramble\Attributes\HeaderParameter;
 use Dedoc\Scramble\Attributes\Parameter;
+use Dedoc\Scramble\Data\Example;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 

@@ -2,6 +2,7 @@
 
 namespace Dedoc\Scramble\Support\Generator;
 
+use Dedoc\Scramble\Data\Parameter as ParameterData;
 use Dedoc\Scramble\Support\Generator\Types\ObjectType;
 use Dedoc\Scramble\Support\Generator\Types\StringType;
 use Dedoc\Scramble\Support\Generator\Types\Type;
@@ -47,25 +48,28 @@ class Schema
         return $result;
     }
 
+    /**
+     * @param ParameterData[] $parameters
+     * @return ObjectType
+     */
     public static function createFromParameters(array $parameters)
     {
-        $schema = (new static)->setType($type = new ObjectType);
+        $type = new ObjectType;
 
         collect($parameters)
-            ->each(function (Parameter $parameter) use ($type) {
+            ->each(function (ParameterData $parameter) use ($type) {
                 $paramType = $parameter->schema ?? new StringType;
-                $paramType = $paramType instanceof Schema ? $paramType->type : $paramType;
 
-                $paramType->setDescription($parameter->description);
+                $paramType->setDescription($parameter->description ?: '');
                 $paramType->example($parameter->example);
 
                 $type->addProperty($parameter->name, $paramType);
-            })
+            })->dd()
             ->tap(fn (Collection $params) => $type->setRequired(
                 $params->where('required', true)->map->name->values()->all()
             ));
 
-        return $schema;
+        return $type;
     }
 
     public function setTitle(?string $title): Schema

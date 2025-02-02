@@ -2,10 +2,9 @@
 
 namespace Dedoc\Scramble\Support\OperationExtensions\RulesExtractor;
 
-use Dedoc\Scramble\Support\Generator\Parameter;
-use Dedoc\Scramble\Support\Generator\Schema;
-use Dedoc\Scramble\Support\Generator\Types\ArrayType;
-use Dedoc\Scramble\Support\Generator\Types\ObjectType;
+use Dedoc\Scramble\Data\Parameter;
+use Dedoc\Scramble\Support\Generator\Types\ArrayType as ArraySchema;
+use Dedoc\Scramble\Support\Generator\Types\ObjectType as ObjectSchema;
 use Dedoc\Scramble\Support\Generator\Types\Type;
 use Dedoc\Scramble\Support\Generator\Types\UnknownType;
 use Illuminate\Support\Collection;
@@ -24,7 +23,7 @@ class DeepParametersMerger
 
     private function handleNested(Collection $parameters)
     {
-        [$forcedFlatParameters, $maybeDeepParameters] = $parameters->partition(fn (Parameter $p) => $p->getAttribute('isFlat') === true);
+        [$forcedFlatParameters, $maybeDeepParameters] = $parameters->partition(fn (Parameter $p) => isset($p->meta->isFlat) && $p->meta->isFlat);
 
         [$nested, $parameters] = $maybeDeepParameters
             ->sortBy(fn ($_, $key) => count(explode('.', $key)))
@@ -44,19 +43,20 @@ class DeepParametersMerger
 
                 $baseParam = $params->get(
                     $groupName,
-                    Parameter::make($groupName, $params->first()->in)
-                        ->setSchema(Schema::fromType(
-                            $params->keys()->contains(fn ($k) => Str::contains($k, "$groupName.*"))
-                                ? new ArrayType
-                                : new ObjectType
-                        ))
+                    new Parameter(
+                        name: $groupName,
+                        in: $params->first()->in,
+                        schema: $params->keys()->contains(fn ($k) => Str::contains($k, "$groupName.*"))
+                            ? new ArraySchema
+                            : new ObjectSchema
+                    )
                 );
 
                 $params->offsetUnset($groupName);
 
                 foreach ($params as $param) {
                     $this->setDeepType(
-                        $baseParam->schema->type,
+                        $baseParam->schema,
                         $param->name,
                         $this->extractTypeFromParameter($param),
                     );
@@ -84,23 +84,23 @@ class DeepParametersMerger
         $isSettingArrayItems = ($settingKey = collect(explode('.', $key))->last()) === '*';
 
         if ($containingType === $base && $base instanceof UnknownType) {
-            $containingType = ($isSettingArrayItems ? new ArrayType : new ObjectType)
+            $containingType = ($isSettingArrayItems ? new ArraySchema : new ObjectSchema)
                 ->addProperties($base);
 
             $base = $containingType;
         }
 
-        if (! ($containingType instanceof ArrayType || $containingType instanceof ObjectType)) {
+        if (! ($containingType instanceof ArraySchema || $containingType instanceof ObjectSchema)) {
             return;
         }
 
-        if ($isSettingArrayItems && $containingType instanceof ArrayType) {
+        if ($isSettingArrayItems && $containingType instanceof ArraySchema) {
             $containingType->items = $typeToSet;
 
             return;
         }
 
-        if (! $isSettingArrayItems && $containingType instanceof ObjectType) {
+        if (! $isSettingArrayItems && $containingType instanceof ObjectSchema) {
             $containingType
                 ->addProperty($settingKey, $typeToSet)
                 ->addRequired($typeToSet->getAttribute('required') ? [$settingKey] : []);
@@ -112,26 +112,26 @@ class DeepParametersMerger
         $key = $path[0];
 
         if (count($path) === 1) {
-            if ($key !== '*' && $base instanceof ArrayType) {
-                $base = new ObjectType;
+            if ($key !== '*' && $base instanceof ArraySchema) {
+                $base = new ObjectSchema;
             }
 
             return $base;
         }
 
         if ($key === '*') {
-            if (! $base instanceof ArrayType) {
-                $base = new ArrayType;
+            if (! $base instanceof ArraySchema) {
+                $base = new ArraySchema;
             }
 
             $next = $path[1];
             if ($next === '*') {
-                if (! $base->items instanceof ArrayType) {
-                    $base->items = new ArrayType;
+                if (! $base->items instanceof ArraySchema) {
+                    $base->items = new ArraySchema;
                 }
             } else {
-                if (! $base->items instanceof ObjectType) {
-                    $base->items = new ObjectType;
+                if (! $base->items instanceof ObjectSchema) {
+                    $base->items = new ObjectSchema;
                 }
             }
 
@@ -140,8 +140,8 @@ class DeepParametersMerger
                 collect($path)->splice(1)->values()->all(),
             );
         } else {
-            if (! $base instanceof ObjectType) {
-                $base = new ObjectType;
+            if (! $base instanceof ObjectSchema) {
+                $base = new ObjectSchema;
             }
 
             $next = $path[1];
@@ -149,21 +149,21 @@ class DeepParametersMerger
             if (! $base->hasProperty($key)) {
                 $base = $base->addProperty(
                     $key,
-                    $next === '*' ? new ArrayType : new ObjectType,
+                    $next === '*' ? new ArraySchema : new ObjectSchema,
                 );
             }
             if (($existingType = $base->getProperty($key)) instanceof UnknownType) {
                 $base = $base->addProperty(
                     $key,
-                    ($next === '*' ? new ArrayType : new ObjectType)->addProperties($existingType),
+                    ($next === '*' ? new ArraySchema : new ObjectSchema)->addProperties($existingType),
                 );
             }
 
-            if ($next === '*' && ! $existingType instanceof ArrayType) {
-                $base->addProperty($key, (new ArrayType)->addProperties($existingType));
+            if ($next === '*' && ! $existingType instanceof ArraySchema) {
+                $base->addProperty($key, (new ArraySchema)->addProperties($existingType));
             }
-            if ($next !== '*' && $existingType instanceof ArrayType) {
-                $base->addProperty($key, (new ObjectType)->addProperties($existingType));
+            if ($next !== '*' && $existingType instanceof ArraySchema) {
+                $base->addProperty($key, (new ObjectSchema)->addProperties($existingType));
             }
 
             return $this->getOrCreateDeepTypeContainer(
@@ -173,9 +173,9 @@ class DeepParametersMerger
         }
     }
 
-    private function extractTypeFromParameter($parameter)
+    private function extractTypeFromParameter(Parameter $parameter)
     {
-        $paramType = $parameter->schema->type;
+        $paramType = $parameter->schema;
 
         $paramType->setDescription($parameter->description);
         $paramType->example($parameter->example);

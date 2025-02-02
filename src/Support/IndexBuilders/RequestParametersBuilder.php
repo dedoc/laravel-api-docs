@@ -2,12 +2,11 @@
 
 namespace Dedoc\Scramble\Support\IndexBuilders;
 
+use Dedoc\Scramble\Data\MissingValue;
+use Dedoc\Scramble\Data\Parameter;
+use Dedoc\Scramble\Data\ParameterMeta;
 use Dedoc\Scramble\Infer\Scope\Scope;
-use Dedoc\Scramble\Support\Generator\MissingExample;
-use Dedoc\Scramble\Support\Generator\Parameter;
-use Dedoc\Scramble\Support\Generator\Schema;
 use Dedoc\Scramble\Support\Generator\TypeTransformer;
-use Dedoc\Scramble\Support\Helpers\ExamplesExtractor;
 use Dedoc\Scramble\Support\Type\BooleanType;
 use Dedoc\Scramble\Support\Type\FloatType;
 use Dedoc\Scramble\Support\Type\IntegerType;
@@ -20,8 +19,6 @@ use Dedoc\Scramble\Support\Type\StringType;
 use Dedoc\Scramble\Support\Type\TypeHelper;
 use Dedoc\Scramble\Support\Type\UnknownType;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use PhpParser\Comment;
 use PhpParser\Node;
 use PhpParser\NodeAbstract;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
@@ -72,16 +69,16 @@ class RequestParametersBuilder implements IndexBuilder
             return;
         }
 
-        $parameter = Parameter::make($parameterName, 'query'/* @todo: this is just a temp solution */);
+        $meta = new ParameterMeta;
 
         [$parameterType, $parameterDefault] = match ($name) {
             'integer' => $this->makeIntegerParameter($scope, $methodCallNode),
             'float' => $this->makeFloatParameter($scope, $methodCallNode),
             'boolean' => $this->makeBooleanParameter($scope, $methodCallNode),
             'enum' => $this->makeEnumParameter($scope, $methodCallNode),
-            'query' => $this->makeQueryParameter($scope, $methodCallNode, $parameter),
+            'query' => $this->makeQueryParameter($scope, $methodCallNode, $meta),
             'string', 'str', 'input' => $this->makeStringParameter($scope, $methodCallNode),
-            'get', 'post' => $this->makeFlatParameter($scope, $methodCallNode),
+            'get', 'post' => $this->makeFlatParameter($scope, $methodCallNode, $meta),
             default => [null, null],
         };
 
@@ -89,23 +86,19 @@ class RequestParametersBuilder implements IndexBuilder
             return;
         }
 
-        if ($parameterDefaultFromDoc = $this->getParameterDefaultFromPhpDoc($commentHolderNode)) {
-            $parameterDefault = $parameterDefaultFromDoc;
-        }
+        $parameter = new Parameter(
+            name: $parameterName,
+            schema: $this->typeTransformer->transform($parameterType),
+            default: $parameterDefault ?? new MissingValue,
+            meta: $meta,
+        );
 
-        $this->checkExplicitParameterPlacementInQuery($commentHolderNode, $parameter);
-
-        $parameter
-            ->description($this->makeDescriptionFromComments($commentHolderNode))
-            ->setSchema(Schema::fromType(
-                $this->typeTransformer
-                    ->transform($parameterType)
-                    ->default($parameterDefault ?? new MissingExample)
-            ));
-
-        if ($parameterType->getAttribute('isFlat')) {
-            $parameter->setAttribute('isFlat', true);
-        }
+        ParameterMeta::applyDataFromPhpDoc(
+            $meta,
+            $node->getAttribute('parsedPhpDoc'),
+            $this->typeTransformer,
+            $parameterType instanceof StringType
+        );
 
         $this->bag->set($parameterName, $parameter);
     }
@@ -156,14 +149,12 @@ class RequestParametersBuilder implements IndexBuilder
         ];
     }
 
-    private function makeFlatParameter(Scope $scope, Node $node)
+    private function makeFlatParameter(Scope $scope, Node $node, ParameterMeta $meta)
     {
-        $type = new StringType;
-
-        $type->setAttribute('isFlat', true);
+        $meta->setIsFlat(true);
 
         return [
-            $type,
+            new StringType,
             TypeHelper::getArgType($scope, $node->args, ['default', 1])->value ?? null,
         ];
     }
@@ -180,35 +171,14 @@ class RequestParametersBuilder implements IndexBuilder
         ];
     }
 
-    private function makeQueryParameter(Scope $scope, Node $node, Parameter $parameter)
+    private function makeQueryParameter(Scope $scope, Node $node, ParameterMeta $meta)
     {
-        $parameter->setAttribute('isInQuery', true);
+        $meta->setInQuery(true);
 
         return [
             new UnknownType,
             TypeHelper::getArgType($scope, $node->args, ['default', 1])->value ?? null,
         ];
-    }
-
-    private function makeDescriptionFromComments(NodeAbstract $node)
-    {
-        /*
-         * @todo: consider adding only @param annotation support,
-         * so when description is taken only if comment is marked with @param
-         */
-        if ($phpDoc = $node->getAttribute('parsedPhpDoc')) {
-            return trim($phpDoc->getAttribute('summary').' '.$phpDoc->getAttribute('description'));
-        }
-
-        if ($node->getComments()) {
-            $docText = collect($node->getComments())
-                ->map(fn (Comment $c) => $c->getReformattedText())
-                ->join("\n");
-
-            return (string) Str::of($docText)->replace(['//', ' * ', '/**', '/*', '*/'], '')->trim();
-        }
-
-        return '';
     }
 
     private function shouldIgnoreParameter(NodeAbstract $node)
@@ -217,23 +187,5 @@ class RequestParametersBuilder implements IndexBuilder
         $phpDoc = $node->getAttribute('parsedPhpDoc');
 
         return (bool) $phpDoc?->getTagsByName('@ignoreParam');
-    }
-
-    private function getParameterDefaultFromPhpDoc(NodeAbstract $node)
-    {
-        /** @var PhpDocNode|null $phpDoc */
-        $phpDoc = $node->getAttribute('parsedPhpDoc');
-
-        return ExamplesExtractor::make($phpDoc, '@default')->extract()[0] ?? null;
-    }
-
-    private function checkExplicitParameterPlacementInQuery(NodeAbstract $node, Parameter $parameter)
-    {
-        /** @var PhpDocNode|null $phpDoc */
-        $phpDoc = $node->getAttribute('parsedPhpDoc');
-
-        if ((bool) $phpDoc?->getTagsByName('@query')) {
-            $parameter->setAttribute('isInQuery', true);
-        }
     }
 }

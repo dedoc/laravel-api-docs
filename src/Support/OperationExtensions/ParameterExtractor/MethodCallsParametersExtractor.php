@@ -2,7 +2,7 @@
 
 namespace Dedoc\Scramble\Support\OperationExtensions\ParameterExtractor;
 
-use Dedoc\Scramble\Support\Generator\Parameter;
+use Dedoc\Scramble\Data\Parameter;
 use Dedoc\Scramble\Support\OperationExtensions\RulesExtractor\ParametersExtractionResult;
 use Dedoc\Scramble\Support\RouteInfo;
 

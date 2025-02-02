@@ -2,6 +2,8 @@
 
 namespace Dedoc\Scramble\Support\Generator;
 
+use Dedoc\Scramble\Data\MissingValue;
+
 class Example
 {
     public function __construct(

@@ -2,6 +2,7 @@
 
 namespace Dedoc\Scramble\Support\OperationExtensions;
 
+use Dedoc\Scramble\Data\Parameter as ParameterData;
 use Dedoc\Scramble\Extensions\OperationExtension;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\ContainerUtils;
@@ -61,17 +62,19 @@ class RequestBodyExtension extends OperationExtension
 
         if (in_array($operation->method, static::HTTP_METHODS_WITHOUT_REQUEST_BODY)) {
             $operation->addParameters(
-                $this->convertDotNamedParamsToComplexStructures($allParams)
+                collect($this->convertDotNamedParamsToComplexStructures($allParams))->map->toOpenApi()->all(),
             );
 
             return;
         }
 
         [$queryParams, $bodyParams] = collect($allParams)
-            ->partition(fn (Parameter $p) => $p->getAttribute('isInQuery'))
+            ->partition(fn (ParameterData $p) => isset($p->meta->inQuery) && $p->meta->inQuery)
             ->map->toArray();
 
-        $operation->addParameters($this->convertDotNamedParamsToComplexStructures($queryParams));
+        $operation->addParameters(
+            collect($this->convertDotNamedParamsToComplexStructures($queryParams))->map->toOpenApi()->all(),
+        );
 
         if (! $bodyParams) {
             return;
@@ -130,14 +133,14 @@ class RequestBodyExtension extends OperationExtension
         );
 
         if (! $result->schemaName) {
-            return $requestBodySchema->type;
+            return $requestBodySchema;
         }
 
         $components = $this->openApiTransformer->getComponents();
         if (! $components->hasSchema($result->schemaName)) {
-            $requestBodySchema->type->setDescription($result->description ?: '');
+            $requestBodySchema->setDescription($result->description ?: '');
 
-            $components->addSchema($result->schemaName, $requestBodySchema);
+            $components->addSchema($result->schemaName, Schema::fromType($requestBodySchema));
         }
 
         return new Reference('schemas', $result->schemaName, $components);
@@ -184,9 +187,9 @@ class RequestBodyExtension extends OperationExtension
 
     protected function hasBinary($bodyParams): bool
     {
-        return collect($bodyParams)->contains(function (Parameter $parameter) {
+        return collect($bodyParams)->contains(function (ParameterData $parameter) {
             // @todo: Use OpenApi document tree walker when ready
-            $parameterString = json_encode($parameter->toArray());
+            $parameterString = json_encode($parameter->schema?->toArray());
 
             return Str::contains($parameterString, '"contentMediaType":"application\/octet-stream"');
         });

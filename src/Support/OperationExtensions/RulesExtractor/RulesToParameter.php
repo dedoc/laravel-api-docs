@@ -2,14 +2,12 @@
 
 namespace Dedoc\Scramble\Support\OperationExtensions\RulesExtractor;
 
-use Dedoc\Scramble\PhpDoc\PhpDocTypeHelper;
-use Dedoc\Scramble\Support\Generator\Parameter;
-use Dedoc\Scramble\Support\Generator\Schema;
+use Dedoc\Scramble\Data\Parameter;
+use Dedoc\Scramble\Data\ParameterMeta;
 use Dedoc\Scramble\Support\Generator\Types\StringType;
 use Dedoc\Scramble\Support\Generator\Types\Type as OpenApiType;
 use Dedoc\Scramble\Support\Generator\Types\UnknownType;
 use Dedoc\Scramble\Support\Generator\TypeTransformer;
-use Dedoc\Scramble\Support\Helpers\ExamplesExtractor;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
@@ -42,7 +40,7 @@ class RulesToParameter
             ->sortByDesc($this->rulesSorter());
 
         /** @var OpenApiType $type */
-        $type = $rules->reduce(function (OpenApiType $type, $rule) {
+        $schema = $rules->reduce(function (OpenApiType $type, $rule) {
             if (is_string($rule)) {
                 return $this->getTypeFromStringRule($type, $rule);
             }
@@ -52,56 +50,13 @@ class RulesToParameter
                 : $this->getTypeFromObjectRule($type, $rule);
         }, new UnknownType);
 
-        $description = $type->description;
-        $type->setDescription('');
-
-        $parameter = Parameter::make($this->name, 'query')
-            ->setSchema(Schema::fromType($type))
-            ->required($rules->contains('required') && $rules->doesntContain('sometimes'))
-            ->description($description);
-
-        return $this->applyDocsInfo($parameter);
-    }
-
-    private function applyDocsInfo(Parameter $parameter)
-    {
-        if (! $this->docNode) {
-            return $parameter;
-        }
-
-        $description = (string) Str::of($this->docNode->getAttribute('summary') ?: '')
-            ->append(' '.($this->docNode->getAttribute('description') ?: ''))
-            ->trim();
-
-        if ($description) {
-            $parameter->description($description);
-        }
-
-        if (count($varTags = $this->docNode->getVarTagValues())) {
-            $varTag = $varTags[0];
-
-            $parameter->setSchema(Schema::fromType(
-                $this->openApiTransformer->transform(PhpDocTypeHelper::toType($varTag->type)),
-            ));
-        }
-
-        if ($examples = ExamplesExtractor::make($this->docNode)->extract(preferString: $parameter->schema->type instanceof StringType)) {
-            $parameter->example($examples[0]);
-        }
-
-        if ($default = ExamplesExtractor::make($this->docNode, '@default')->extract(preferString: $parameter->schema->type instanceof StringType)) {
-            $parameter->schema->type->default($default[0]);
-        }
-
-        if ($format = array_values($this->docNode->getTagsByName('@format'))[0]->value->value ?? null) {
-            $parameter->schema->type->format($format);
-        }
-
-        if ($this->docNode->getTagsByName('@query')) {
-            $parameter->setAttribute('isInQuery', true);
-        }
-
-        return $parameter;
+        return new Parameter(
+            name: $this->name,
+            description: $schema->description,
+            required: $rules->contains('required') && $rules->doesntContain('sometimes'),
+            schema: $schema,
+            meta: ParameterMeta::applyDataFromPhpDoc(new ParameterMeta, $this->docNode, $this->openApiTransformer, preferString: $schema instanceof StringType),
+        );
     }
 
     private function rulesSorter()
