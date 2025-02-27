@@ -232,4 +232,9 @@ class RulesMapper
 
         return $type->format('date-time');
     }
+
+    public function date_format(Type $type, $params)
+    {
+        return $this->date($type, $params);
+    }
 }
