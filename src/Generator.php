@@ -185,8 +185,12 @@ class Generator
             })
             ->filter($config->routes())
             ->filter(fn (Route $r) => $r->getAction('controller'))
-            ->filter(function (Route $route) {
+            ->filter(function (Route $route) use ($config) {
                 if (! is_string($route->getAction('uses'))) {
+                    return true;
+                }
+
+                if ($config->get('ignore_exclude_attributes')) {
                     return true;
                 }
 

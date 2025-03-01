@@ -183,4 +183,9 @@ class GeneratorConfig
     {
         return Arr::get($this->config, $key, $default);
     }
+
+    public function set(string $key, mixed $value): void
+    {
+        $this->config[$key] = $value;
+    }
 }

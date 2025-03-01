@@ -12,6 +12,7 @@ class ExportDocumentation extends Command
     protected $signature = 'scramble:export
         {--path= : The path to save the exported JSON file}
         {--api=default : The API to export a documentation for}
+        {--all : Ignore exclude attributes, export all routes}
     ';
 
     protected $description = 'Export the OpenAPI document to a JSON file.';
@@ -19,6 +20,10 @@ class ExportDocumentation extends Command
     public function handle(Generator $generator): void
     {
         $config = Scramble::getGeneratorConfig($api = $this->option('api'));
+
+        if ($this->option('all')) {
+            $config->set('ignore_exclude_attributes', true);
+        }
 
         $specification = json_encode($generator($config), JSON_PRETTY_PRINT);
 
